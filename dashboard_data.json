@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-15T17:34:05.246594",
+  "generated_at": "2026-06-15T18:14:33.629165",
   "test_day": 0,
   "test_total_days": 60,
   "test_ends": "August 14, 2026",
@@ -11,7 +11,7 @@
   "next_deposit": "June 29, 2026",
   "our_return_pct": -100.0,
   "qqq_return_pct": 0.02,
-  "voo_return_pct": 0.01,
+  "voo_return_pct": -0.07,
   "qqq_price_start": 743.5,
   "voo_price_start": 695.01,
   "positions": [],
