@@ -2,10 +2,13 @@ name: Portfolio Monitor
 
 on:
   schedule:
-    # 9am ET weekdays (1pm UTC — accounts for ET = UTC-4 in summer)
+    # 9:45am ET weekdays (1:45pm UTC — EDT = UTC-4)
     - cron: "45 13 * * 1-5"
   workflow_dispatch:
-    # Allows you to manually trigger a run from the GitHub Actions tab anytime
+
+# Allow the workflow to write back to the repo (for dashboard_data.json)
+permissions:
+  contents: write
 
 jobs:
   run-monitor:
@@ -14,6 +17,9 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4.2.2
+        with:
+          # Use a token with write access so git push works
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v5.6.0
@@ -21,29 +27,27 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install requests
 
       - name: Restore trade cache
         uses: actions/cache@v4.2.3
         with:
           path: seen_trades.json
-          key: seen-trades-${{ runner.os }}
+          key: seen-trades-${{ runner.os }}-${{ github.run_id }}
           restore-keys: |
-            seen-trades-
+            seen-trades-${{ runner.os }}-
 
       - name: Run monitor
         env:
           ALPACA_API_KEY:     ${{ secrets.ALPACA_API_KEY }}
           ALPACA_SECRET_KEY:  ${{ secrets.ALPACA_SECRET_KEY }}
-          ALPACA_ENDPOINT:    ${{ secrets.ALPACA_ENDPOINT }}
-          GMAIL_ADDRESS:      ${{ secrets.GMAIL_ADDRESS }}
-          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-          NOTIFY_EMAIL:       ${{ secrets.NOTIFY_EMAIL }}
           GEMINI_API_KEY:     ${{ secrets.GEMINI_API_KEY }}
+          NOTIFY_EMAIL:       ${{ secrets.NOTIFY_EMAIL }}
+          GITHUB_TOKEN:       ${{ secrets.GITHUB_TOKEN }}
         run: python monitor.py
 
       - name: Save trade cache
         uses: actions/cache@v4.2.3
         with:
           path: seen_trades.json
-          key: seen-trades-${{ runner.os }}
+          key: seen-trades-${{ runner.os }}-${{ github.run_id }}
