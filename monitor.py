@@ -632,7 +632,10 @@ def send_email(subject: str, html_body: str):
     msg["To"]      = NOTIFY_EMAIL
     msg.attach(MIMEText(html_body, "html"))
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as s:
+        with smtplib.SMTP("smtp.gmail.com", 587) as s:
+            s.ehlo()
+            s.starttls()
+            s.ehlo()
             s.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
             s.sendmail(GMAIL_ADDRESS, NOTIFY_EMAIL, msg.as_string())
         log.info(f"Email sent: {subject}")
