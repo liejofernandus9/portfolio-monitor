@@ -1,0 +1,118 @@
+{
+  "generated_at": "2026-06-15T16:57:48.584297",
+  "test_day": 0,
+  "test_total_days": 60,
+  "test_ends": "August 14, 2026",
+  "cash_balance": 250.0,
+  "total_deposited": 250.0,
+  "total_invested": 0.0,
+  "portfolio_value": 0,
+  "unrealized_pl": 0,
+  "next_deposit": "June 29, 2026",
+  "our_return_pct": -100.0,
+  "qqq_return_pct": 0.0,
+  "voo_return_pct": -0.02,
+  "qqq_price_start": 743.5,
+  "voo_price_start": 695.01,
+  "positions": [],
+  "signal_log": [
+    {
+      "timestamp": "2026-06-15T16:57:36.795431",
+      "type": "DEPOSIT",
+      "ticker": "",
+      "source": "System",
+      "trade_type": "Deposit",
+      "score": 0,
+      "conviction_pct": 0,
+      "allocation": 250.0,
+      "amount_range": "",
+      "analysis": "Biweekly deposit of $250.00. Cash balance now $250.00. Next deposit: June 29, 2026",
+      "order_id": "",
+      "reason": ""
+    },
+    {
+      "timestamp": "2026-06-15T16:57:37.238480",
+      "type": "REFRESH",
+      "ticker": "",
+      "source": "System",
+      "trade_type": "Congress Refresh",
+      "score": 0,
+      "conviction_pct": 0,
+      "allocation": 0,
+      "amount_range": "",
+      "analysis": "Congressional watchlist refreshed. ",
+      "order_id": "",
+      "reason": ""
+    },
+    {
+      "timestamp": "2026-06-15T16:57:37.417167",
+      "type": "REFRESH",
+      "ticker": "",
+      "source": "System",
+      "trade_type": "Fund Refresh",
+      "score": 0,
+      "conviction_pct": 0,
+      "allocation": 0,
+      "amount_range": "",
+      "analysis": "Fund manager watchlist refreshed. ",
+      "order_id": "",
+      "reason": ""
+    }
+  ],
+  "trade_history": [],
+  "missed_signals": [],
+  "congress_targets": [
+    {
+      "name": "Nancy Pelosi",
+      "last_name": "Pelosi",
+      "chamber": "house"
+    },
+    {
+      "name": "David Rouzer",
+      "last_name": "Rouzer",
+      "chamber": "house"
+    },
+    {
+      "name": "Josh Gottheimer",
+      "last_name": "Gottheimer",
+      "chamber": "house"
+    },
+    {
+      "name": "Dan Crenshaw",
+      "last_name": "Crenshaw",
+      "chamber": "house"
+    },
+    {
+      "name": "Ron Wyden",
+      "last_name": "Wyden",
+      "chamber": "senate"
+    }
+  ],
+  "fund_targets": [
+    {
+      "name": "Bill Ackman / Pershing Square",
+      "cik": "0001336528"
+    },
+    {
+      "name": "Michael Burry / Scion",
+      "cik": "0001649339"
+    },
+    {
+      "name": "Stan Druckenmiller / Duquesne",
+      "cik": "0001536411"
+    },
+    {
+      "name": "Warren Buffett / Berkshire",
+      "cik": "0001067983"
+    },
+    {
+      "name": "Philippe Laffont / Coatue",
+      "cik": "0001336920"
+    }
+  ],
+  "last_congress_refresh": "2026-06-15T16:57:37.238470",
+  "last_fund_refresh": "2026-06-15T16:57:37.417156",
+  "congress_refresh_in": 21,
+  "fund_refresh_in": 28,
+  "day60_verdict": null
+}
