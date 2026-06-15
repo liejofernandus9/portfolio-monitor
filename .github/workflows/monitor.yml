@@ -3,7 +3,7 @@ name: Portfolio Monitor
 on:
   schedule:
     # 9am ET weekdays (1pm UTC — accounts for ET = UTC-4 in summer)
-    - cron: "0 13 * * 1-5"
+    - cron: "45 13 * * 1-5"
   workflow_dispatch:
     # Allows you to manually trigger a run from the GitHub Actions tab anytime
 
@@ -13,10 +13,10 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v5.6.0
         with:
           python-version: "3.11"
 
@@ -24,7 +24,7 @@ jobs:
         run: pip install -r requirements.txt
 
       - name: Restore trade cache
-        uses: actions/cache@v4
+        uses: actions/cache@v4.2.3
         with:
           path: seen_trades.json
           key: seen-trades-${{ runner.os }}
@@ -43,7 +43,7 @@ jobs:
         run: python monitor.py
 
       - name: Save trade cache
-        uses: actions/cache@v4
+        uses: actions/cache@v4.2.3
         with:
           path: seen_trades.json
           key: seen-trades-${{ runner.os }}
