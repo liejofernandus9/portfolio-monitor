@@ -797,30 +797,36 @@ def commit_dashboard(data: dict):
         json.dump(data, f, indent=2, default=str)
     log.info(f"Dashboard data written to {DASHBOARD_FILE}")
 
-    # Commit using git (GitHub Actions has git pre-configured)
+    # Commit dashboard using GitHub API directly — avoids all git push conflicts
     try:
-        subprocess.run(["git", "config", "user.email", "monitor@github.com"], check=True)
-        subprocess.run(["git", "config", "user.name",  "Portfolio Monitor"], check=True)
-        # Always pull latest before committing to avoid push rejection
-        subprocess.run(["git", "pull", "--rebase", "origin", "main"], check=True)
-        subprocess.run(["git", "add", DASHBOARD_FILE], check=True)
-        # Check if there's actually something to commit
-        result = subprocess.run(
-            ["git", "diff", "--cached", "--quiet"],
-            capture_output=True
-        )
-        if result.returncode != 0:
-            subprocess.run(
-                ["git", "commit", "-m",
-                 f"📊 Dashboard update — {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}"],
-                check=True
-            )
-            subprocess.run(["git", "push"], check=True)
-            log.info("Dashboard committed and pushed to GitHub")
+        import base64
+        with open(DASHBOARD_FILE, "rb") as f:
+            encoded = base64.b64encode(f.read()).decode("utf-8")
+
+        api_url = f"https://api.github.com/repos/{GITHUB_REPO}/contents/{DASHBOARD_FILE}"
+        headers = {
+            "Authorization": f"token {GITHUB_TOKEN}",
+            "Accept":        "application/vnd.github.v3+json",
+        }
+
+        # Get current file SHA (required for updates)
+        get_resp = requests.get(api_url, headers=headers, timeout=10)
+        sha = get_resp.json().get("sha") if get_resp.status_code == 200 else None
+
+        payload = {
+            "message": f"📊 Dashboard update — {datetime.utcnow().strftime('%Y-%m-%d %H:%M UTC')}",
+            "content": encoded,
+        }
+        if sha:
+            payload["sha"] = sha
+
+        put_resp = requests.put(api_url, headers=headers, json=payload, timeout=15)
+        if put_resp.status_code in (200, 201):
+            log.info("Dashboard committed via GitHub API")
         else:
-            log.info("No dashboard changes to commit")
-    except subprocess.CalledProcessError as e:
-        log.error(f"Git commit failed: {e}")
+            log.error(f"GitHub API commit failed: {put_resp.status_code} {put_resp.text[:200]}")
+    except Exception as e:
+        log.error(f"Dashboard commit failed: {e}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
