@@ -230,18 +230,26 @@ def calculate_allocation(conviction_pct: float, cash_balance: float) -> float:
 # GEMINI AI
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def gemini_call(prompt: str) -> str:
+def gemini_call(prompt: str, retries: int = 3) -> str:
     body = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"maxOutputTokens": 700, "temperature": 0.3},
     }
-    try:
-        resp = requests.post(GEMINI_FLASH_URL, json=body, timeout=30)
-        resp.raise_for_status()
-        return resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
-    except Exception as e:
-        log.warning(f"Gemini failed: {e}")
-        return ""
+    for attempt in range(retries):
+        try:
+            resp = requests.post(GEMINI_FLASH_URL, json=body, timeout=30)
+            if resp.status_code == 429:
+                wait = 10 * (attempt + 1)
+                log.warning(f"Gemini rate limited — waiting {wait}s (attempt {attempt+1}/{retries})")
+                time.sleep(wait)
+                continue
+            resp.raise_for_status()
+            return resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+        except Exception as e:
+            log.warning(f"Gemini failed (attempt {attempt+1}): {e}")
+            if attempt < retries - 1:
+                time.sleep(5)
+    return ""
 
 
 def extract_ticker(raw_text: str) -> str:
@@ -312,7 +320,7 @@ def fetch_house_trades(last_name: str) -> list:
     Downloads the current year's PTR ZIP, parses XML for the member.
     """
     year = datetime.utcnow().year
-    url  = f"https://disclosures-clerk.house.gov/public_disc/ptr-pdfs/{year}/{year}FD.zip"
+    url  = f"https://disclosures-clerk.house.gov/public_disc/financial-pdfs/{year}FD.zip"
     headers = {"User-Agent": "PortfolioMonitor/1.0 research@example.com"}
 
     try:
@@ -370,38 +378,36 @@ def fetch_senate_trades(last_name: str) -> list:
     URL: https://efts.senate.gov/LATEST/search-index
     Free JSON API, no key required.
     """
+    # Senate eFD public search — correct endpoint
     url     = "https://efts.senate.gov/LATEST/search-index"
     params  = {
-        "q":          last_name,
+        "q":            last_name,
         "report_types": "PTR",
-        "filer_types": "Senator",
-        "limit":      10,
     }
-    headers = {"User-Agent": "PortfolioMonitor/1.0 research@example.com"}
+    headers = {"User-Agent": "PortfolioMonitor/1.0 research@example.com",
+               "Accept":     "application/json"}
 
     try:
         log.info(f"  Fetching Senate eFD for {last_name}...")
         resp = requests.get(url, params=params, headers=headers, timeout=15)
         resp.raise_for_status()
-        data     = resp.json()
-        hits     = data.get("hits", {}).get("hits", [])
-        trades   = []
+        data   = resp.json()
+        hits   = data.get("hits", {}).get("hits", [])
+        trades = []
 
         for hit in hits:
             src       = hit.get("_source", {})
-            name      = src.get("first_name", "") + " " + src.get("last_name", "")
-            file_date = src.get("date_filed", "")
-            # Senate PTRs link to PDFs — we extract what metadata is available
-            # Full transaction details require PDF parsing; return filing-level data
+            name      = (src.get("first_name","") + " " + src.get("last_name","")).strip()
+            file_date = src.get("date_filed","")
             trades.append({
-                "ticker":     "PENDING",   # requires PDF parse
+                "ticker":     "PENDING",
                 "type":       "PTR Filing",
                 "trade_date": file_date,
                 "filed_date": file_date,
                 "amount":     "See filing",
-                "asset":      src.get("document_description", ""),
-                "member":     name.strip(),
-                "doc_id":     hit.get("_id", ""),
+                "asset":      src.get("document_description",""),
+                "member":     name,
+                "doc_id":     hit.get("_id",""),
                 "source":     "Senate eFD (Official)",
             })
 
@@ -409,8 +415,34 @@ def fetch_senate_trades(last_name: str) -> list:
         return trades
 
     except Exception as e:
+        # Fallback: scrape Senate search page via HTTPS
         log.warning(f"  Senate eFD fetch failed for {last_name}: {e}")
-        return []
+        try:
+            fallback_url = f"https://www.senate.gov/legislative/LIS/roll_call_lists/roll_call_vote_cfm.cfm"
+            # Try alternative Senate financial disclosure search
+            alt_url  = "https://senate-stock-watcher-data.s3-us-west-2.amazonaws.com/aggregate/all_transactions_for_filing.json"
+            alt_resp = requests.get(alt_url, timeout=15, headers=headers)
+            alt_resp.raise_for_status()
+            all_data = alt_resp.json()
+            trades   = []
+            for filing in all_data:
+                if last_name.lower() in filing.get("senator","").lower():
+                    for tx in filing.get("transactions",[]):
+                        trades.append({
+                            "ticker":     tx.get("ticker","").upper().strip(),
+                            "type":       tx.get("type",""),
+                            "trade_date": tx.get("transaction_date",""),
+                            "filed_date": filing.get("date_recieved",""),
+                            "amount":     tx.get("amount",""),
+                            "asset":      tx.get("asset_description",""),
+                            "member":     filing.get("senator",""),
+                            "source":     "Senate Stock Watcher (S3)",
+                        })
+            log.info(f"  Senate fallback: {len(trades)} trades for {last_name}")
+            return trades[:20]
+        except Exception as e2:
+            log.warning(f"  Senate fallback also failed: {e2}")
+            return []
 
 
 def fetch_congressional_trades(member: dict) -> list:
@@ -463,7 +495,7 @@ def refresh_congress_targets(cache: dict) -> tuple:
     """Re-rank using recent House XML data."""
     log.info("Refreshing congressional targets...")
     year    = datetime.utcnow().year
-    url     = f"https://disclosures-clerk.house.gov/public_disc/ptr-pdfs/{year}/{year}FD.zip"
+    url     = f"https://disclosures-clerk.house.gov/public_disc/financial-pdfs/{year}FD.zip"
     headers = {"User-Agent": "PortfolioMonitor/1.0 research@example.com"}
 
     try:
