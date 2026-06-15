@@ -38,6 +38,7 @@ ALPACA_API_KEY     = os.environ["ALPACA_API_KEY"]
 ALPACA_SECRET_KEY  = os.environ["ALPACA_SECRET_KEY"]
 ALPACA_BASE_URL    = "https://paper-api.alpaca.markets"
 GEMINI_API_KEY     = os.environ["GEMINI_API_KEY"]
+FINNHUB_API_KEY    = os.environ.get("FINNHUB_API_KEY", "")
 GITHUB_TOKEN       = os.environ.get("GITHUB_TOKEN", "")
 GITHUB_REPO        = "liejofernandus9/portfolio-monitor"
 
@@ -315,180 +316,95 @@ Be direct. Give a real recommendation."""
 
 def fetch_house_trades(last_name: str) -> list:
     """
-    Fetch House PTR filings using two free public sources:
-    1. House Clerk search API (POST request)
-    2. Fallback: congressstock.com public JSON feed
-    Both return PTR transaction data without requiring API keys.
+    Fetch House member congressional trades from Finnhub free API.
+    Endpoint: https://finnhub.io/api/v1/stock/congressional-trading
+    Free tier: 60 calls/min, no credit card required.
     """
-    trades = []
+    if not FINNHUB_API_KEY:
+        log.warning("  FINNHUB_API_KEY not set — skipping House trades")
+        return []
 
-    # ── Source 1: House Clerk search API ─────────────────────────────────────
-    try:
-        log.info(f"  Fetching House Clerk search for {last_name}...")
-        search_url = "https://disclosures-clerk.house.gov/FinancialDisclosure/ViewMemberSearchResult"
-        headers = {
-            "User-Agent":   "Mozilla/5.0 (compatible; PortfolioMonitor/1.0)",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Referer":      "https://disclosures-clerk.house.gov/FinancialDisclosure",
-            "Accept":       "application/json, text/javascript, */*",
-        }
-        payload = {
-            "LastName":  last_name,
-            "FilingYear": str(datetime.utcnow().year),
-            "State":     "",
-            "District":  "",
-        }
-        resp = requests.post(search_url, data=payload, headers=headers, timeout=15)
-        resp.raise_for_status()
-        results = resp.json()
-
-        # Results are filing-level — fetch PTR filings only
-        for filing in results:
-            if str(filing.get("FilingType", "")).upper() not in ("P", "PTR"):
-                continue
-            doc_id    = filing.get("DocID", "")
-            file_date = filing.get("FilingDate", "")
-            member    = f"{filing.get('Prefix','')} {filing.get('Last','')}".strip()
-
-            # Fetch the PTR PDF XML data via the detail endpoint
-            detail_url = f"https://disclosures-clerk.house.gov/public_disc/ptr-pdfs/{datetime.utcnow().year}/{doc_id}.pdf"
-            trades.append({
-                "ticker":     "PDF",   # transaction detail in PDF
-                "type":       "PTR",
-                "trade_date": file_date,
-                "filed_date": file_date,
-                "amount":     "See PTR filing",
-                "asset":      f"PTR #{doc_id}",
-                "member":     member,
-                "doc_id":     doc_id,
-                "source":     "House Clerk Search (Official)",
-            })
-
-        if trades:
-            log.info(f"  Found {len(trades)} House PTR filings for {last_name}")
-            return trades[:10]
-
-    except Exception as e:
-        log.warning(f"  House Clerk search failed for {last_name}: {e}")
-
-    # ── Source 2: congressstock.com JSON feed (fallback) ──────────────────────
-    try:
-        log.info(f"  Trying congressstock.com feed for {last_name}...")
-        # Public JSON endpoint used by congressstock.com
-        feed_url = f"https://www.congressstock.com/api/transactions?name={last_name}&limit=20"
-        headers  = {
-            "User-Agent": "Mozilla/5.0 (compatible; PortfolioMonitor/1.0)",
-            "Accept":     "application/json",
-        }
-        resp = requests.get(feed_url, headers=headers, timeout=15)
-        resp.raise_for_status()
-        data = resp.json()
-
-        for tx in (data.get("transactions") or data if isinstance(data, list) else []):
-            trades.append({
-                "ticker":     str(tx.get("ticker","") or tx.get("symbol","")).upper().strip(),
-                "type":       str(tx.get("type","") or tx.get("transaction_type","")),
-                "trade_date": str(tx.get("transaction_date","") or tx.get("trade_date","")),
-                "filed_date": str(tx.get("disclosure_date","") or tx.get("filed_date","")),
-                "amount":     str(tx.get("amount","") or tx.get("amount_range","")),
-                "asset":      str(tx.get("asset","") or tx.get("asset_description","")),
-                "member":     str(tx.get("representative","") or tx.get("name",last_name)),
-                "source":     "CongressStock.com",
-            })
-        if trades:
-            log.info(f"  congressstock.com: {len(trades)} trades for {last_name}")
-            return trades[:20]
-
-    except Exception as e:
-        log.warning(f"  congressstock.com feed failed for {last_name}: {e}")
-
-    # ── Source 3: Capitol Trades web search via their public search ───────────
-    try:
-        log.info(f"  Trying Capitol Trades search for {last_name}...")
-        ct_url = f"https://www.capitoltrades.com/politicians?search={last_name}"
-        headers = {"User-Agent": "Mozilla/5.0 (compatible; PortfolioMonitor/1.0)"}
-        resp = requests.get(ct_url, headers=headers, timeout=15)
-        # Just check if accessible — parse what we can from the HTML
-        if resp.status_code == 200 and last_name.lower() in resp.text.lower():
-            log.info(f"  Capitol Trades accessible for {last_name} — no structured data without API")
-    except Exception:
-        pass
-
-    log.info(f"  Found {len(trades)} trades for {last_name} across all sources")
-    return trades
-
-
-def fetch_senate_trades(last_name: str) -> list:
-    """
-    Fetch Senate PTR filings from the Senate eFD search endpoint.
-    URL: https://efts.senate.gov/LATEST/search-index
-    Free JSON API, no key required.
-    """
-    # Senate eFD public search — correct endpoint
-    url     = "https://efts.senate.gov/LATEST/search-index"
-    params  = {
-        "q":            last_name,
-        "report_types": "PTR",
+    url = "https://finnhub.io/api/v1/stock/congressional-trading"
+    params = {
+        "token": FINNHUB_API_KEY,
+        "symbol": "",          # leave blank to get all trades
     }
-    headers = {"User-Agent": "PortfolioMonitor/1.0 research@example.com",
-               "Accept":     "application/json"}
+    headers = {"User-Agent": "PortfolioMonitor/1.0"}
 
     try:
-        log.info(f"  Fetching Senate eFD for {last_name}...")
+        log.info(f"  Fetching Finnhub congressional trades for {last_name}...")
         resp = requests.get(url, params=params, headers=headers, timeout=15)
         resp.raise_for_status()
         data   = resp.json()
-        hits   = data.get("hits", {}).get("hits", [])
-        trades = []
+        all_tx = data.get("data", [])
 
-        for hit in hits:
-            src       = hit.get("_source", {})
-            name      = (src.get("first_name","") + " " + src.get("last_name","")).strip()
-            file_date = src.get("date_filed","")
+        # Filter to our target member by last name
+        trades = []
+        for tx in all_tx:
+            name = tx.get("name", "") or tx.get("representative", "")
+            if last_name.lower() not in name.lower():
+                continue
             trades.append({
-                "ticker":     "PENDING",
-                "type":       "PTR Filing",
-                "trade_date": file_date,
-                "filed_date": file_date,
-                "amount":     "See filing",
-                "asset":      src.get("document_description",""),
+                "ticker":     str(tx.get("symbol", "") or tx.get("ticker", "")).upper().strip(),
+                "type":       str(tx.get("transactionType", "") or tx.get("transaction", "")),
+                "trade_date": str(tx.get("transactionDate", "") or tx.get("date", "")),
+                "filed_date": str(tx.get("filingDate", "") or tx.get("filed", "")),
+                "amount":     str(tx.get("amount", "") or tx.get("range", "")),
+                "asset":      str(tx.get("assetName", "") or tx.get("asset", "")),
                 "member":     name,
-                "doc_id":     hit.get("_id",""),
-                "source":     "Senate eFD (Official)",
+                "source":     "Finnhub (Congressional Trading)",
             })
 
-        log.info(f"  Found {len(trades)} Senate filings for {last_name}")
-        return trades
+        log.info(f"  Finnhub: {len(trades)} trades for {last_name}")
+        return trades[:20]
 
     except Exception as e:
-        # Fallback: scrape Senate search page via HTTPS
-        log.warning(f"  Senate eFD fetch failed for {last_name}: {e}")
-        try:
-            fallback_url = f"https://www.senate.gov/legislative/LIS/roll_call_lists/roll_call_vote_cfm.cfm"
-            # Try alternative Senate financial disclosure search
-            alt_url  = "https://senate-stock-watcher-data.s3-us-west-2.amazonaws.com/aggregate/all_transactions_for_filing.json"
-            alt_resp = requests.get(alt_url, timeout=15, headers=headers)
-            alt_resp.raise_for_status()
-            all_data = alt_resp.json()
-            trades   = []
-            for filing in all_data:
-                if last_name.lower() in filing.get("senator","").lower():
-                    for tx in filing.get("transactions",[]):
-                        trades.append({
-                            "ticker":     tx.get("ticker","").upper().strip(),
-                            "type":       tx.get("type",""),
-                            "trade_date": tx.get("transaction_date",""),
-                            "filed_date": filing.get("date_recieved",""),
-                            "amount":     tx.get("amount",""),
-                            "asset":      tx.get("asset_description",""),
-                            "member":     filing.get("senator",""),
-                            "source":     "Senate Stock Watcher (S3)",
-                        })
-            log.info(f"  Senate fallback: {len(trades)} trades for {last_name}")
-            return trades[:20]
-        except Exception as e2:
-            log.warning(f"  Senate fallback also failed: {e2}")
-            return []
+        log.warning(f"  Finnhub fetch failed for {last_name}: {e}")
+        return []
+
+def fetch_senate_trades(last_name: str) -> list:
+    """
+    Fetch Senate PTR trades from Senate Stock Watcher public JSON.
+    URL: https://senate-stock-watcher-data.s3-us-west-2.amazonaws.com/aggregate/all_transactions_for_filing.json
+    No auth required. Falls back to Finnhub if unavailable.
+    """
+    # Primary: Senate Stock Watcher (individual filing JSONs are accessible)
+    try:
+        log.info(f"  Fetching Senate Stock Watcher for {last_name}...")
+        # Use the per-senator index file
+        url     = "https://senate-stock-watcher-data.s3-us-west-2.amazonaws.com/aggregate/all_transactions.json"
+        headers = {"User-Agent": "PortfolioMonitor/1.0"}
+        resp    = requests.get(url, headers=headers, timeout=20)
+        resp.raise_for_status()
+        all_tx = resp.json()
+
+        trades = []
+        for tx in all_tx:
+            senator = tx.get("senator", "")
+            if last_name.lower() not in senator.lower():
+                continue
+            trades.append({
+                "ticker":     str(tx.get("ticker", "")).upper().strip(),
+                "type":       str(tx.get("type", "")),
+                "trade_date": str(tx.get("transaction_date", "")),
+                "filed_date": str(tx.get("disclosure_date", "")),
+                "amount":     str(tx.get("amount", "")),
+                "asset":      str(tx.get("asset_description", "")),
+                "member":     senator,
+                "source":     "Senate Stock Watcher",
+            })
+        log.info(f"  Senate Stock Watcher: {len(trades)} trades for {last_name}")
+        return trades[:20]
+
+    except Exception as e:
+        log.warning(f"  Senate Stock Watcher failed for {last_name}: {e}")
+
+    # Fallback: Finnhub (covers Senate too)
+    if FINNHUB_API_KEY:
+        log.info(f"  Falling back to Finnhub for Senate member {last_name}...")
+        return fetch_house_trades(last_name)  # same Finnhub endpoint covers both chambers
+
+    return []
 
 
 def fetch_congressional_trades(member: dict) -> list:
