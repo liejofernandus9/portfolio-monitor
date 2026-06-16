@@ -42,7 +42,7 @@ jobs:
           ALPACA_API_KEY:     ${{ secrets.ALPACA_API_KEY }}
           ALPACA_SECRET_KEY:  ${{ secrets.ALPACA_SECRET_KEY }}
           GEMINI_API_KEY:     ${{ secrets.GEMINI_API_KEY }}
-          FINNHUB_API_KEY:    ${{ secrets.FINNHUB_API_KEY }}
+          FMP_API_KEY:        ${{ secrets.FMP_API_KEY }}
           GITHUB_TOKEN:       ${{ secrets.GITHUB_TOKEN }}
         run: python monitor.py
 
