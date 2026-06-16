@@ -842,6 +842,51 @@ def commit_dashboard(data: dict):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# PARKING STRATEGY HELPERS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def get_park_allocation(cash_balance: float) -> float:
+    """
+    Calculate how much idle cash to park in QQQ when no signal fires.
+    Returns dollar amount to park, 0 if below minimum threshold.
+    """
+    if cash_balance > PARK_THRESHOLD_HIGH:
+        return round(cash_balance * PARK_PCT_HIGH, 2)
+    elif cash_balance > PARK_THRESHOLD_MID:
+        return round(cash_balance * PARK_PCT_MID, 2)
+    return 0.0
+
+
+def is_parked_position(cache: dict, ticker: str) -> bool:
+    """Returns True if a position was auto-parked (placeholder), not signal-driven."""
+    return cache.get("positions", {}).get(ticker, {}).get("parked", False)
+
+
+def liquidate_parking(cache: dict, positions: list) -> float:
+    """
+    Sell all parked positions to free cash for a real signal.
+    Returns total dollar proceeds freed up.
+    """
+    total_freed = 0.0
+    parked = [p for p in positions if is_parked_position(cache, p.get("symbol", ""))]
+    for p in parked:
+        ticker = p.get("symbol", "")
+        val    = float(p.get("market_value", 0))
+        if val < MIN_POSITION_USD:
+            continue
+        order = place_paper_order(ticker, "sell", val)
+        if "id" in order:
+            cache["cash_balance"] = round(cache.get("cash_balance", 0) + val, 2)
+            cache.get("positions", {}).pop(ticker, None)
+            total_freed += val
+            log.info(f"  Liquidated parked {ticker}: ${val:.2f} returned to cash")
+            log_trade(cache, ticker, "sell", val,
+                      order.get("id", ""), "Parking liquidation", 0)
+    return total_freed
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # MAIN
 # ═══════════════════════════════════════════════════════════════════════════════
 
