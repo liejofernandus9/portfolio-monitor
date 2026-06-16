@@ -92,6 +92,15 @@ CONVICTION_MAP = [
     (1_000,      0.10),
 ]
 
+# ── Parking strategy config ──────────────────────────────────────────────────
+# When no signal fires, idle cash is parked in QQQ/VOO to stay invested
+PARK_TICKER           = "QQQ"    # default parking ticker
+PARK_THRESHOLD_HIGH   = 200.00   # park 70% if cash above this
+PARK_THRESHOLD_MID    = 50.00    # park 50% if cash in this range
+PARK_PCT_HIGH         = 0.70     # fraction to park when cash > $200
+PARK_PCT_MID          = 0.50     # fraction to park when cash $50-$200
+PARK_LABEL            = "PARKED" # position type label in dashboard
+
 # ── Fund manager targets ──────────────────────────────────────────────────────
 FUND_TARGETS = [
     {"name": "Bill Ackman / Pershing Square", "cik": "0001336528"},
@@ -746,6 +755,7 @@ def build_dashboard_data(cache: dict, positions: list) -> dict:
             "conviction_pct":  pos_data.get("conviction_pct", 0),
             "entry_date":      pos_data.get("entry_date", ""),
             "fund_managers":   cache.get("watchlist", {}).get(sym, []),
+            "parked":          pos_data.get("parked", False),
         })
 
     # Watchlist summary — multi-manager tickers highlighted
@@ -1004,6 +1014,14 @@ def main():
                         insider_name=score_result["name"],
                     )
                 else:
+                    # Liquidate any parked positions to free up cash first
+                    parked_proceeds = liquidate_parking(cache, positions)
+                    if parked_proceeds > 0:
+                        log.info(f"  Liquidated parking for ${parked_proceeds:.2f} to fund signal")
+                        # Recalculate with freed cash
+                        cash_before = cache.get("cash_balance", 0.0)
+                        allocation  = calculate_allocation(conviction_pct, cash_before)
+
                     cash_after = round(cash_before - allocation, 2)
                     summary    = (
                         f"Ticker: {ticker}\n"
@@ -1073,7 +1091,59 @@ def main():
             cache["seen"].append(tx_id)
             save_cache(cache)
 
-    # ── 5. Day 60 check ───────────────────────────────────────────────────────
+    # ── 5. Park idle cash if no signals fired ────────────────────────────────
+    # Refresh positions after any trades placed above
+    positions = get_open_positions()
+
+    if signals == 0:
+        cash = cache.get("cash_balance", 0.0)
+        park_amount = get_park_allocation(cash)
+
+        # Check if we already have a parked position in QQQ
+        already_parked = any(
+            p.get("symbol") == PARK_TICKER and is_parked_position(cache, PARK_TICKER)
+            for p in positions
+        )
+
+        if park_amount >= MIN_POSITION_USD and not already_parked:
+            log.info(f"No signals today — parking ${park_amount:.2f} in {PARK_TICKER}")
+            order = place_paper_order(PARK_TICKER, "buy", park_amount)
+
+            if "id" in order:
+                cache["cash_balance"]   = round(cash - park_amount, 2)
+                cache["total_invested"] = round(
+                    cache.get("total_invested", 0) + park_amount, 2
+                )
+                cache.setdefault("positions", {})[PARK_TICKER] = {
+                    "amount_invested": park_amount,
+                    "conviction_pct":  0,
+                    "entry_date":      datetime.utcnow().isoformat(),
+                    "parked":          True,   # flag as placeholder
+                }
+                log_trade(cache, PARK_TICKER, "buy", park_amount,
+                          order.get("id",""), "Auto-park (no signal)", 0)
+                log_signal(
+                    cache, "PARKED", PARK_TICKER, "System", 0, 0, park_amount,
+                    f"No qualifying signals today. Parked ${park_amount:.2f} "
+                    f"in {PARK_TICKER} to keep cash working. "
+                    f"${cache['cash_balance']:.2f} kept liquid for incoming signals. "
+                    f"Position will be liquidated automatically when a real signal fires.",
+                )
+                log.info(f"  Parked ${park_amount:.2f} in {PARK_TICKER} | "
+                         f"Cash remaining: ${cache['cash_balance']:.2f}")
+        elif already_parked:
+            log.info(f"Already have a parked position in {PARK_TICKER} — skipping")
+        else:
+            log.info(f"Cash ${cash:.2f} below park threshold — keeping fully liquid")
+
+        save_cache(cache)
+
+    elif signals > 0:
+        # Real signal fired — liquidate any parked positions first next run
+        # (they were already liquidated inline above during signal processing)
+        pass
+
+    # ── 6. Day 60 check ───────────────────────────────────────────────────────
     if days_into_test(cache) >= TEST_PERIOD_DAYS and not cache.get("day60_verdict"):
         positions = get_open_positions()
         verdict   = get_day60_verdict(cache, positions)
@@ -1081,7 +1151,7 @@ def main():
         log_signal(cache, "DAY60", "", "System", 0, 0, 0, verdict)
         save_cache(cache)
 
-    # ── 6. Build and commit dashboard ─────────────────────────────────────────
+    # ── 7. Build and commit dashboard ─────────────────────────────────────────
     positions      = get_open_positions()
     dashboard_data = build_dashboard_data(cache, positions)
     commit_dashboard(dashboard_data)
