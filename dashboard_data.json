@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-16T04:33:10.101848",
+  "generated_at": "2026-06-16T05:11:40.029959",
   "test_day": 0,
   "test_total_days": 60,
   "test_ends": "August 15, 2026",
@@ -12,8 +12,6 @@
   "our_return_pct": -100.0,
   "qqq_return_pct": -0.03,
   "voo_return_pct": 2.45,
-  "qqq_price_start": 743.5,
-  "voo_price_start": 695.01,
   "positions": [],
   "signal_log": [
     {
@@ -61,41 +59,259 @@
   ],
   "trade_history": [],
   "missed_signals": [],
-  "congress_targets": [
+  "watchlist": [
     {
-      "name": "Nancy Pelosi",
-      "last_name": "Pelosi",
-      "chamber": "house"
+      "ticker": "BN",
+      "managers": [
+        "Ackman"
+      ],
+      "consensus": false
     },
     {
-      "name": "David Rouzer",
-      "last_name": "Rouzer",
-      "chamber": "house"
+      "ticker": "AMZN",
+      "managers": [
+        "Laffont"
+      ],
+      "consensus": false
     },
     {
-      "name": "Josh Gottheimer",
-      "last_name": "Gottheimer",
-      "chamber": "house"
+      "ticker": "UBER",
+      "managers": [
+        "Ackman"
+      ],
+      "consensus": false
     },
     {
-      "name": "Dan Crenshaw",
-      "last_name": "Crenshaw",
-      "chamber": "house"
+      "ticker": "MSFT",
+      "managers": [
+        "Ackman"
+      ],
+      "consensus": false
     },
     {
-      "name": "Ron Wyden",
-      "last_name": "Wyden",
-      "chamber": "senate"
+      "ticker": "QSR",
+      "managers": [
+        "Ackman"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "HLT",
+      "managers": [
+        "Ackman"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "CP",
+      "managers": [
+        "Ackman"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "GOOGL",
+      "managers": [
+        "Buffett"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "NTRA",
+      "managers": [
+        "Druckenmiller"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "AVGO",
+      "managers": [
+        "Druckenmiller"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "TSM",
+      "managers": [
+        "Druckenmiller"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "INSM",
+      "managers": [
+        "Druckenmiller"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "CAI",
+      "managers": [
+        "Druckenmiller"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "YPF",
+      "managers": [
+        "Druckenmiller"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "EWZ",
+      "managers": [
+        "Druckenmiller"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "STM",
+      "managers": [
+        "Druckenmiller"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "AAPL",
+      "managers": [
+        "Buffett"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "BAC",
+      "managers": [
+        "Buffett"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "AXP",
+      "managers": [
+        "Buffett"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "KO",
+      "managers": [
+        "Buffett"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "CVX",
+      "managers": [
+        "Buffett"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "OXY",
+      "managers": [
+        "Buffett"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "MCO",
+      "managers": [
+        "Buffett"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "META",
+      "managers": [
+        "Laffont"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "NVDA",
+      "managers": [
+        "Laffont"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "GOOG",
+      "managers": [
+        "Laffont"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "ORCL",
+      "managers": [
+        "Laffont"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "PLTR",
+      "managers": [
+        "Laffont"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "CRM",
+      "managers": [
+        "Laffont"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "PANW",
+      "managers": [
+        "Laffont"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "MOH",
+      "managers": [
+        "Burry"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "LULU",
+      "managers": [
+        "Burry"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "SLM",
+      "managers": [
+        "Burry"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "HCA",
+      "managers": [
+        "Burry"
+      ],
+      "consensus": false
+    },
+    {
+      "ticker": "C",
+      "managers": [
+        "Burry"
+      ],
+      "consensus": false
     }
   ],
+  "watchlist_size": 35,
+  "multi_manager_count": 0,
   "fund_targets": [
     {
       "name": "Bill Ackman / Pershing Square",
       "cik": "0001336528"
-    },
-    {
-      "name": "Michael Burry / Scion",
-      "cik": "0001649339"
     },
     {
       "name": "Stan Druckenmiller / Duquesne",
@@ -108,11 +324,13 @@
     {
       "name": "Philippe Laffont / Coatue",
       "cik": "0001336920"
+    },
+    {
+      "name": "Michael Burry / Scion",
+      "cik": "0001649339"
     }
   ],
-  "last_congress_refresh": "2026-06-15T16:57:37.238470",
   "last_fund_refresh": "2026-06-15T16:57:37.417156",
-  "congress_refresh_in": 21,
   "fund_refresh_in": 28,
   "day60_verdict": null
 }
