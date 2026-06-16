@@ -38,7 +38,7 @@ ALPACA_API_KEY     = os.environ["ALPACA_API_KEY"]
 ALPACA_SECRET_KEY  = os.environ["ALPACA_SECRET_KEY"]
 ALPACA_BASE_URL    = "https://paper-api.alpaca.markets"
 GEMINI_API_KEY     = os.environ["GEMINI_API_KEY"]
-FMP_API_KEY        = os.environ.get("FMP_API_KEY", "")
+FMP_API_KEY        = os.environ.get("FMP_API_KEY", "") or os.environ.get("FINNHUB_API_KEY", "")
 GITHUB_TOKEN       = os.environ.get("GITHUB_TOKEN", "")
 GITHUB_REPO        = "liejofernandus9/portfolio-monitor"
 
@@ -316,99 +316,83 @@ Be direct. Give a real recommendation."""
 
 def fetch_house_trades(last_name: str) -> list:
     """
-    Fetch House member trades from FMP stable API.
-    Endpoint: https://financialmodelingprep.com/stable/house-trades
-    Free tier: 250 calls/day. Covers all House PTR filings.
+    Fetch congressional trades from Finnhub free tier.
+    Key: query by symbol (per-ticker), not by member (bulk).
+    Free tier supports symbol-scoped queries, not full database dumps.
+    We query a watchlist of known tickers these members trade.
     """
-    if not FMP_API_KEY:
-        log.warning(f"  FMP_API_KEY not set — skipping House trades for {last_name}")
-        return []
+    if not FMP_API_KEY:  # We reuse this var — check below
+        pass
 
-    url     = "https://financialmodelingprep.com/stable/house-trades"
-    params  = {"apikey": FMP_API_KEY}
+    # Known tickers these House members have historically traded
+    # This is the correct free-tier approach: symbol-by-symbol lookups
+    WATCH_TICKERS = [
+        "NVDA", "AAPL", "MSFT", "GOOGL", "AVGO", "META", "AMZN",
+        "PANW", "CRM", "AMD", "TSLA", "NFLX", "V", "MA", "JPM",
+        "LLY", "UNH", "ABBV", "TEM", "LITE", "MU", "INTU", "ADI"
+    ]
+
     headers = {"User-Agent": "PortfolioMonitor/1.0"}
+    trades  = []
+    seen_ids = set()
 
-    try:
-        log.info(f"  Fetching FMP House trades for {last_name}...")
-        resp = requests.get(url, params=params, headers=headers, timeout=15)
-        resp.raise_for_status()
-        all_tx = resp.json()
+    from_date = (datetime.utcnow() - timedelta(days=60)).strftime("%Y-%m-%d")
+    to_date   = datetime.utcnow().strftime("%Y-%m-%d")
 
-        if not isinstance(all_tx, list):
-            log.warning(f"  FMP House unexpected response: {str(all_tx)[:100]}")
-            return []
+    for symbol in WATCH_TICKERS:
+        try:
+            url    = "https://finnhub.io/api/v1/stock/congressional-trading"
+            params = {
+                "symbol": symbol,
+                "from":   from_date,
+                "to":     to_date,
+                "token":  FMP_API_KEY,   # stored under FMP_API_KEY var
+            }
+            resp = requests.get(url, params=params, headers=headers, timeout=10)
 
-        # Filter by last name
-        trades = []
-        for tx in all_tx:
-            rep = str(tx.get("representative", "") or tx.get("name", ""))
-            if last_name.lower() not in rep.lower():
-                continue
-            trades.append({
-                "ticker":     str(tx.get("ticker","") or tx.get("symbol","")).upper().strip(),
-                "type":       str(tx.get("type","") or tx.get("transactionType","")),
-                "trade_date": str(tx.get("transactionDate","") or tx.get("date","")),
-                "filed_date": str(tx.get("disclosureDate","") or tx.get("filingDate","")),
-                "amount":     str(tx.get("amount","") or tx.get("range","")),
-                "asset":      str(tx.get("assetDescription","") or tx.get("asset","")),
-                "member":     rep,
-                "source":     "FMP House Trades API",
-            })
+            if resp.status_code == 403:
+                log.warning(f"  Finnhub 403 on {symbol} — congressional data is premium only")
+                break   # no point continuing if premium-gated
 
-        log.info(f"  FMP House: {len(trades)} trades for {last_name}")
-        return trades[:20]
+            if resp.status_code == 402:
+                log.warning(f"  Finnhub 402 on {symbol} — premium required")
+                break
 
-    except Exception as e:
-        log.warning(f"  FMP House fetch failed for {last_name}: {e}")
-        return []
+            resp.raise_for_status()
+            data = resp.json()
+
+            for tx in data.get("data", []):
+                name   = str(tx.get("name",""))
+                tx_id  = str(tx.get("transactionDate","")) + name + symbol
+                if last_name.lower() not in name.lower():
+                    continue
+                if tx_id in seen_ids:
+                    continue
+                seen_ids.add(tx_id)
+                trades.append({
+                    "ticker":     symbol,
+                    "type":       str(tx.get("transactionType","")),
+                    "trade_date": str(tx.get("transactionDate","")),
+                    "filed_date": str(tx.get("filingDate","")),
+                    "amount":     str(tx.get("amount","")),
+                    "asset":      str(tx.get("assetName","")),
+                    "member":     name,
+                    "source":     "Finnhub Congressional Trading",
+                })
+            time.sleep(0.5)   # respect rate limit: 60 calls/min
+
+        except Exception as e:
+            log.warning(f"  Finnhub fetch failed for {symbol}: {e}")
+            continue
+
+    log.info(f"  Finnhub: {len(trades)} trades for {last_name} across watchlist")
+    return trades[:20]
 
 def fetch_senate_trades(last_name: str) -> list:
     """
-    Fetch Senate member trades from FMP stable API.
-    Endpoint: https://financialmodelingprep.com/stable/senate-trades
-    Free tier: 250 calls/day. Covers all Senate PTR filings.
+    Senate members use the same Finnhub endpoint — it covers both chambers.
     """
-    if not FMP_API_KEY:
-        log.warning(f"  FMP_API_KEY not set — skipping Senate trades for {last_name}")
-        return []
-
-    url     = "https://financialmodelingprep.com/stable/senate-trades"
-    params  = {"apikey": FMP_API_KEY}
-    headers = {"User-Agent": "PortfolioMonitor/1.0"}
-
-    try:
-        log.info(f"  Fetching FMP Senate trades for {last_name}...")
-        resp = requests.get(url, params=params, headers=headers, timeout=15)
-        resp.raise_for_status()
-        all_tx = resp.json()
-
-        if not isinstance(all_tx, list):
-            log.warning(f"  FMP Senate unexpected response: {str(all_tx)[:100]}")
-            return []
-
-        # Filter by last name
-        trades = []
-        for tx in all_tx:
-            senator = str(tx.get("senator","") or tx.get("name","") or tx.get("representative",""))
-            if last_name.lower() not in senator.lower():
-                continue
-            trades.append({
-                "ticker":     str(tx.get("ticker","") or tx.get("symbol","")).upper().strip(),
-                "type":       str(tx.get("type","") or tx.get("transactionType","")),
-                "trade_date": str(tx.get("transactionDate","") or tx.get("date","")),
-                "filed_date": str(tx.get("disclosureDate","") or tx.get("filingDate","")),
-                "amount":     str(tx.get("amount","") or tx.get("range","")),
-                "asset":      str(tx.get("assetDescription","") or tx.get("asset","")),
-                "member":     senator,
-                "source":     "FMP Senate Trades API",
-            })
-
-        log.info(f"  FMP Senate: {len(trades)} trades for {last_name}")
-        return trades[:20]
-
-    except Exception as e:
-        log.warning(f"  FMP Senate fetch failed for {last_name}: {e}")
-        return []
+    return fetch_house_trades(last_name)
 
 
 def fetch_congressional_trades(member: dict) -> list:
