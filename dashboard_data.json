@@ -1,18 +1,31 @@
 {
-  "generated_at": "2026-06-16T05:11:40.029959",
+  "generated_at": "2026-06-16T15:23:57.512311",
   "test_day": 0,
   "test_total_days": 60,
   "test_ends": "August 15, 2026",
-  "cash_balance": 250.0,
+  "cash_balance": 75.0,
   "total_deposited": 250.0,
-  "total_invested": 0.0,
-  "portfolio_value": 0,
-  "unrealized_pl": 0,
+  "total_invested": 175.0,
+  "portfolio_value": 175.0,
+  "unrealized_pl": 0.01,
   "next_deposit": "June 29, 2026",
-  "our_return_pct": -100.0,
-  "qqq_return_pct": -0.03,
-  "voo_return_pct": 2.45,
-  "positions": [],
+  "our_return_pct": -30.0,
+  "qqq_return_pct": -1.0,
+  "voo_return_pct": -0.4,
+  "positions": [
+    {
+      "symbol": "QQQ",
+      "market_value": 174.99951,
+      "unrealized_pl": 0.00951,
+      "unrealized_plpc": 0.005,
+      "avg_entry": 735.99,
+      "amount_invested": 175.0,
+      "conviction_pct": 0,
+      "entry_date": "2026-06-16T15:23:57.265784",
+      "fund_managers": [],
+      "parked": true
+    }
+  ],
   "signal_log": [
     {
       "timestamp": "2026-06-15T16:57:36.795431",
@@ -55,9 +68,33 @@
       "analysis": "Fund manager watchlist refreshed. ",
       "order_id": "",
       "reason": ""
+    },
+    {
+      "timestamp": "2026-06-16T15:23:57.265802",
+      "type": "PARKED",
+      "ticker": "QQQ",
+      "source": "System",
+      "score": 0,
+      "conviction_pct": 0,
+      "allocation": 175.0,
+      "analysis": "No qualifying signals today. Parked $175.00 in QQQ to keep cash working. $75.00 kept liquid for incoming signals. Position will be liquidated automatically when a real signal fires.",
+      "order_id": "",
+      "reason": "",
+      "role": "",
+      "insider_name": ""
     }
   ],
-  "trade_history": [],
+  "trade_history": [
+    {
+      "timestamp": "2026-06-16T15:23:57.265794",
+      "ticker": "QQQ",
+      "side": "buy",
+      "amount": 175.0,
+      "order_id": "4ec30f9d-3ff4-47ec-b3fa-d05cc76ac862",
+      "source": "Auto-park (no signal)",
+      "conviction_pct": 0
+    }
+  ],
   "missed_signals": [],
   "watchlist": [
     {
