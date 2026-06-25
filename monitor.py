@@ -1133,6 +1133,28 @@ def main():
                     )
                     signals += 1
 
+            else:
+                # WATCH — score too low to act on, but log it so it's visible
+                # in the dashboard signal feed rather than disappearing silently
+                managers_held = watchlist.get(ticker, [])
+                watch_note = (
+                    f"{score_result['name']} ({score_result['role']}) "
+                    f"filed a {tx_code} transaction on {ticker}. "
+                    f"Score {score_result['score']}/10 — below the 6/10 buy threshold, "
+                    f"so no trade was placed. "
+                )
+                if managers_held:
+                    watch_note += f"Held by: {', '.join(managers_held)}. "
+                watch_note += f"Reasons: {', '.join(score_result['reasons'])}"
+
+                log_signal(
+                    cache, "WATCH", ticker,
+                    f"{score_result['name']} ({score_result['role']})",
+                    score_result["score"], 0, 0, watch_note,
+                    role=score_result["role"],
+                    insider_name=score_result["name"],
+                )
+
             cache["seen"].append(tx_id)
             save_cache(cache)
 
