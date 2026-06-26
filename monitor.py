@@ -339,15 +339,89 @@ Be direct. Give a real recommendation."""
 # SEC EDGAR — 13F HOLDINGS PARSER
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# ── Known issuer name → ticker mapping ────────────────────────────────────────
+# 13F filings report nameOfIssuer + cusip, NOT ticker symbols — the SEC schema
+# has no ticker field. This map resolves the company names that actually show
+# up in our fund managers' filings to tickers, using normalized matching since
+# issuer names vary across filers (e.g. "AMAZON COM INC" vs "AMAZONCOM INC").
+ISSUER_NAME_TO_TICKER = {
+    "AMAZON COM": "AMZN", "AMAZONCOM": "AMZN", "AMAZON COM INC": "AMZN",
+    "MICROSOFT CORP": "MSFT", "MICROSOFT": "MSFT",
+    "ALPHABET INC": "GOOGL", "ALPHABET INC-CL C": "GOOG", "ALPHABET INC-CL A": "GOOGL",
+    "APPLE INC": "AAPL", "APPLE COMPUTER": "AAPL",
+    "META PLATFORMS": "META", "META PLATFORMS INC": "META",
+    "NVIDIA CORP": "NVDA", "NVIDIA CORPORATION": "NVDA",
+    "BROADCOM INC": "AVGO", "BROADCOM": "AVGO",
+    "TAIWAN SEMICONDUCTOR": "TSM", "TAIWAN SEMICONDUCTOR-SP ADR": "TSM",
+    "MICRON TECHNOLOGY": "MU", "MICRON TECHNOLOGY INC": "MU",
+    "UBER TECHNOLOGIES": "UBER", "UBER TECHNOLOGIES INC": "UBER",
+    "ORACLE CORP": "ORCL", "ORACLE CORPORATION": "ORCL",
+    "PALANTIR TECHNOLOGIES": "PLTR",
+    "SALESFORCE INC": "CRM", "SALESFORCE COM": "CRM",
+    "PALO ALTO NETWORKS": "PANW",
+    "BANK OF AMERICA": "BAC", "BANK OF AMERICA CORP": "BAC",
+    "AMERICAN EXPRESS": "AXP", "AMERICAN EXPRESS CO": "AXP",
+    "COCA COLA": "KO", "COCA COLA CO": "KO",
+    "CHEVRON CORP": "CVX", "CHEVRON CORPORATION": "CVX",
+    "OCCIDENTAL PETROLEUM": "OXY",
+    "MOODYS CORP": "MCO", "MOODY'S CORP": "MCO",
+    "BROOKFIELD CORP": "BN", "BROOKFIELD": "BN",
+    "RESTAURANT BRANDS INTL": "QSR", "RESTAURANT BRANDS": "QSR",
+    "HILTON WORLDWIDE": "HLT", "HILTON WORLDWIDE HOLDINGS": "HLT",
+    "CANADIAN PACIFIC": "CP", "CANADIAN PACIFIC KANSAS CITY": "CP",
+    "NATERA INC": "NTRA",
+    "INSMED INC": "INSM",
+    "CAREDX INC": "CAI",
+    "YPF SOCIEDAD ANONIMA": "YPF", "YPF SA": "YPF",
+    "ISHARES MSCI BRAZIL": "EWZ",
+    "STMICROELECTRONICS": "STM",
+    "VISTRA CORP": "VST",
+    "SANDISK CORP": "SNDK",
+    "WHIRLPOOL CORP": "WHR",
+    "ALIBABA GROUP": "BABA", "ALIBABA GROUP HOLDING": "BABA",
+}
+
+
+def normalize_issuer_name(name: str) -> str:
+    """Strip common suffixes/punctuation so issuer names match more reliably."""
+    n = name.upper().strip()
+    for suffix in [", INC.", " INC.", " INC", ", CORP.", " CORP.", " CORP",
+                   ", CO.", " CO.", " CO", " LTD", " LLC", ", L.P.", " LP",
+                   " PLC", " SA", " AG", " HOLDINGS", " HOLDING"]:
+        if n.endswith(suffix):
+            n = n[: -len(suffix)]
+    n = n.replace(".", "").replace(",", "").strip()
+    return n
+
+
+def resolve_ticker_from_issuer(issuer_name: str) -> str | None:
+    """Look up a ticker for a 13F-reported issuer name. Returns None if unmatched."""
+    if not issuer_name:
+        return None
+    normalized = normalize_issuer_name(issuer_name)
+    if normalized in ISSUER_NAME_TO_TICKER:
+        return ISSUER_NAME_TO_TICKER[normalized]
+    # Try direct match on the raw name too, in case normalization over-stripped
+    if issuer_name.upper().strip() in ISSUER_NAME_TO_TICKER:
+        return ISSUER_NAME_TO_TICKER[issuer_name.upper().strip()]
+    return None
+
+
 def fetch_13f_holdings(cik: str) -> list[str]:
     """
     Fetch the actual ticker list from the most recent 13F-HR filing via SEC EDGAR.
+
+    IMPORTANT: 13F filings report nameOfIssuer + cusip — there is no ticker
+    field in the schema. This resolves tickers via ISSUER_NAME_TO_TICKER.
+    Holdings with no name match are skipped (not every position resolves,
+    only ones relevant to our watchlist universe).
+
     Returns list of ticker symbols held by this manager.
     """
     headers = {"User-Agent": "PortfolioMonitor research@example.com"}
 
     # Step 1: Get most recent 13F accession number
-    sub_url  = f"https://data.sec.gov/submissions/CIK{cik.zfill(10)}.json"
+    sub_url = f"https://data.sec.gov/submissions/CIK{cik.zfill(10)}.json"
     try:
         resp = requests.get(sub_url, headers=headers, timeout=15)
         resp.raise_for_status()
@@ -369,70 +443,66 @@ def fetch_13f_holdings(cik: str) -> list[str]:
         log.warning(f"SEC EDGAR submissions failed for CIK {cik}: {e}")
         return []
 
-    # Step 2: Fetch the actual 13F XML filing to get holdings
+    # Step 2: Find and fetch the information table XML for this filing
     acc_clean = acc_no.replace("-", "")
-    index_url = (
-        f"https://www.sec.gov/Archives/edgar/full-index/"
-        f"cgi-bin/browse-edgar?action=getcompany&CIK={cik}"
-        f"&type=13F-HR&dateb=&owner=include&count=1&search_text="
-    )
-
-    # Use the direct filing index
-    filing_url = (
+    primary_url = (
         f"https://www.sec.gov/Archives/edgar/data/"
-        f"{int(cik)}/{acc_clean}/"
+        f"{int(cik)}/{acc_clean}/{acc_clean}-index.htm"
     )
 
     try:
-        idx_resp = requests.get(
-            f"https://data.sec.gov/submissions/CIK{cik.zfill(10)}.json",
-            headers=headers, timeout=15
-        )
-        # Try to find the infotable XML in the filing
-        # Build URL to the primary document
-        primary_url = (
-            f"https://www.sec.gov/Archives/edgar/data/"
-            f"{int(cik)}/{acc_clean}/{acc_clean}-index.htm"
-        )
         idx = requests.get(primary_url, headers=headers, timeout=15)
+        idx.raise_for_status()
 
-        # Look for infotable XML link
         import re
+        # Look for the information table XML — filenames vary but commonly
+        # contain "infotable", "form13f", or are the only .xml besides the
+        # primary doc. Try infotable-specific pattern first, then any XML.
         xml_match = re.search(
-            r'href="(/Archives/edgar/data/[^"]+infotable[^"]*\.xml)"',
+            r'href="(/Archives/edgar/data/[^"]+(?:infotable|13f)[^"]*\.xml)"',
             idx.text, re.IGNORECASE
         )
         if not xml_match:
-            # Try alternate pattern
             xml_match = re.search(
                 r'href="(/Archives/edgar/data/[^"]+\.xml)"',
                 idx.text, re.IGNORECASE
             )
 
-        if xml_match:
-            xml_url = "https://www.sec.gov" + xml_match.group(1)
-            xml_resp = requests.get(xml_url, headers=headers, timeout=15)
-            xml_resp.raise_for_status()
+        if not xml_match:
+            log.warning(f"  No XML info table found in filing index for CIK {cik}")
+            return []
 
-            # Parse the infotable XML for tickers
-            root    = ET.fromstring(xml_resp.content)
-            ns      = {"ns": root.tag.split("}")[0].strip("{") if "}" in root.tag else ""}
-            tickers = []
+        xml_url = "https://www.sec.gov" + xml_match.group(1)
+        time.sleep(0.3)  # respect SEC rate limits
+        xml_resp = requests.get(xml_url, headers=headers, timeout=15)
+        xml_resp.raise_for_status()
 
-            for info in root.findall(".//{*}infoTable"):
-                ticker_el = info.find("{*}ticker") or info.find("ticker")
-                if ticker_el is not None and ticker_el.text:
-                    t = ticker_el.text.strip().upper()
-                    if t and t.isalpha() and len(t) <= 5:
-                        tickers.append(t)
+        root = ET.fromstring(xml_resp.content)
 
-            log.info(f"  Parsed {len(tickers)} tickers from 13F XML for CIK {cik}")
-            return list(set(tickers))
+        tickers = []
+        unmatched_count = 0
+        for info in root.findall(".//{*}infoTable"):
+            name_el = info.find("{*}nameOfIssuer")
+            issuer_name = name_el.text.strip() if name_el is not None and name_el.text else ""
+
+            if not issuer_name:
+                continue
+
+            ticker = resolve_ticker_from_issuer(issuer_name)
+            if ticker:
+                tickers.append(ticker)
+            else:
+                unmatched_count += 1
+
+        log.info(
+            f"  CIK {cik}: {len(tickers)} tickers resolved, "
+            f"{unmatched_count} holdings unmatched (not in known issuer map)"
+        )
+        return list(set(tickers))
 
     except Exception as e:
         log.warning(f"  13F XML parse failed for CIK {cik}: {e}")
-
-    return []
+        return []
 
 
 def rebuild_watchlist(cache: dict) -> dict:
