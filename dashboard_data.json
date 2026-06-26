@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-06-25T16:08:25.644649",
-  "test_day": 9,
+  "generated_at": "2026-06-26T15:58:29.652622",
+  "test_day": 10,
   "test_total_days": 60,
   "test_ends": "August 15, 2026",
   "cash_balance": 75.0,
   "total_deposited": 250.0,
   "total_invested": 175.0,
-  "portfolio_value": 170.21,
-  "unrealized_pl": -4.78,
+  "portfolio_value": 169.63,
+  "unrealized_pl": -5.36,
   "next_deposit": "June 29, 2026",
-  "our_return_pct": -31.92,
-  "qqq_return_pct": -3.65,
-  "voo_return_pct": -2.5,
+  "our_return_pct": -32.15,
+  "qqq_return_pct": -4.04,
+  "voo_return_pct": -2.71,
   "positions": [
     {
       "symbol": "QQQ",
-      "market_value": 170.206573,
-      "unrealized_pl": -4.783427,
-      "unrealized_plpc": -2.734,
+      "market_value": 169.627292,
+      "unrealized_pl": -5.362708,
+      "unrealized_plpc": -3.065,
       "avg_entry": 735.99,
       "amount_invested": 175.0,
       "conviction_pct": 0,
@@ -82,6 +82,34 @@
       "reason": "",
       "role": "",
       "insider_name": ""
+    },
+    {
+      "timestamp": "2026-06-26T15:58:13.622274",
+      "type": "WATCH",
+      "ticker": "INSM",
+      "source": "Butera Samuele ()",
+      "score": 3,
+      "conviction_pct": 0,
+      "allocation": 0,
+      "analysis": "Butera Samuele () filed a A transaction on INSM. Score 3/10 \u2014 below the 6/10 buy threshold, so no trade was placed. Held by: Druckenmiller. Reasons: Insider buy (A) (+3)",
+      "order_id": "",
+      "reason": "",
+      "role": "",
+      "insider_name": "Butera Samuele"
+    },
+    {
+      "timestamp": "2026-06-26T15:58:20.379676",
+      "type": "WATCH",
+      "ticker": "OXY",
+      "source": "Jackson Richard A. ()",
+      "score": 3,
+      "conviction_pct": 0,
+      "allocation": 0,
+      "analysis": "Jackson Richard A. () filed a P transaction on OXY. Score 3/10 \u2014 below the 6/10 buy threshold, so no trade was placed. Held by: Buffett. Reasons: Insider buy (P) (+3)",
+      "order_id": "",
+      "reason": "",
+      "role": "",
+      "insider_name": "Jackson Richard A."
     }
   ],
   "trade_history": [
@@ -368,6 +396,6 @@
     }
   ],
   "last_fund_refresh": "2026-06-15T16:57:37.417156",
-  "fund_refresh_in": 19,
+  "fund_refresh_in": 18,
   "day60_verdict": null
 }
