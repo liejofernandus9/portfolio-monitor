@@ -106,8 +106,8 @@ FUND_TARGETS = [
     {"name": "Bill Ackman / Pershing Square", "cik": "0001336528"},
     {"name": "Stan Druckenmiller / Duquesne", "cik": "0001536411"},
     {"name": "Warren Buffett / Berkshire",    "cik": "0001067983"},
-    {"name": "Philippe Laffont / Coatue",     "cik": "0001336920"},
-    {"name": "Michael Burry / Scion",         "cik": "0001649339"},
+    {"name": "Philippe Laffont / Coatue",     "cik": "0001135730"},  # FIXED: was pointing at Leidos Holdings (wrong entity)
+    {"name": "David Tepper / Appaloosa",      "cik": "0001656456"},  # REPLACED Burry — Scion deregistered w/ SEC Nov 2025, no longer files 13F
 ]
 
 # Seed watchlist from Q1 2026 13F data — refreshed dynamically every 28 days
@@ -125,13 +125,14 @@ SEED_WATCHLIST = {
     "AAPL": ["Buffett"], "BAC": ["Buffett"], "AXP": ["Buffett"],
     "KO": ["Buffett"], "CVX": ["Buffett"], "OXY": ["Buffett"],
     "MCO": ["Buffett"], "GOOGL": ["Buffett"],
-    # Laffont / Coatue (latest)
+    # Laffont / Coatue (Q1 2026, correct CIK 0001135730 — $29.05B AUM, 61 holdings)
     "META": ["Laffont"], "NVDA": ["Laffont"], "GOOG": ["Laffont"],
     "ORCL": ["Laffont"], "PLTR": ["Laffont"], "AMZN": ["Laffont"],
     "CRM": ["Laffont"], "PANW": ["Laffont"],
-    # Burry / Scion (Q3 2025 — most recent filed)
-    "MOH": ["Burry"], "LULU": ["Burry"], "SLM": ["Burry"],
-    "HCA": ["Burry"], "C": ["Burry"],
+    # Tepper / Appaloosa (Q1 2026, $5.93B, 31 holdings)
+    "AMZN": ["Tepper"], "MU": ["Tepper"], "GOOG": ["Tepper"],
+    "UBER": ["Tepper"], "TSM": ["Tepper"], "VST": ["Tepper"],
+    "SNDK": ["Tepper"],
 }
 
 DASHBOARD_FILE = "dashboard_data.json"
