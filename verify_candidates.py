@@ -183,6 +183,10 @@ def fetch_13f_holdings_summary(cik: str, acc_no: str) -> dict:
     """
     Fetch the actual 13F information table XML and return a summary:
     holdings count, total value, top 5 by value.
+
+    NOTE: 13F filings report nameOfIssuer + cusip, NOT a ticker field —
+    the SEC schema has no ticker element. Top holdings are reported by
+    issuer name; ticker resolution (where needed) happens elsewhere.
     """
     import re
     import xml.etree.ElementTree as ET
@@ -198,8 +202,10 @@ def fetch_13f_holdings_summary(cik: str, acc_no: str) -> dict:
         idx = requests.get(index_url, headers=HEADERS, timeout=15)
         idx.raise_for_status()
 
+        # Broaden match: info table XML filenames vary (infotable, form13f,
+        # primary_doc, or just a lone .xml alongside the main submission doc)
         xml_match = re.search(
-            r'href="(/Archives/edgar/data/[^"]+infotable[^"]*\.xml)"',
+            r'href="(/Archives/edgar/data/[^"]+(?:infotable|13f)[^"]*\.xml)"',
             idx.text, re.IGNORECASE
         )
         if not xml_match:
@@ -208,6 +214,7 @@ def fetch_13f_holdings_summary(cik: str, acc_no: str) -> dict:
                 idx.text, re.IGNORECASE
             )
         if not xml_match:
+            print(f"    [debug] No XML found in index for CIK {cik}, acc {acc_no}")
             return out
 
         xml_url = "https://www.sec.gov" + xml_match.group(1)
@@ -220,20 +227,23 @@ def fetch_13f_holdings_summary(cik: str, acc_no: str) -> dict:
         for info in root.findall(".//{*}infoTable"):
             name_el  = info.find("{*}nameOfIssuer")
             value_el = info.find("{*}value")
-            ticker_el = info.find("{*}ticker") or info.find("ticker")
+            cusip_el = info.find("{*}cusip")
 
             name  = name_el.text.strip() if name_el is not None and name_el.text else "?"
             value = float(value_el.text) if value_el is not None and value_el.text else 0
-            ticker = ticker_el.text.strip().upper() if ticker_el is not None and ticker_el.text else ""
+            cusip = cusip_el.text.strip() if cusip_el is not None and cusip_el.text else ""
 
-            holdings.append({"name": name, "ticker": ticker, "value": value})
+            holdings.append({"name": name, "cusip": cusip, "value": value})
 
         out["count"] = len(holdings)
         out["value"] = sum(h["value"] for h in holdings)
         out["top_holdings"] = sorted(holdings, key=lambda x: x["value"], reverse=True)[:5]
 
-    except Exception:
-        pass
+        if out["count"] == 0:
+            print(f"    [debug] XML parsed but 0 infoTable entries found for CIK {cik}")
+
+    except Exception as e:
+        print(f"    [debug] 13F XML fetch/parse failed for CIK {cik}: {e}")
 
     return out
 
