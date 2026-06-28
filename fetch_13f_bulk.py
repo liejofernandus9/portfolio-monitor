@@ -47,9 +47,12 @@ from datetime import datetime, date
 HEADERS = {"User-Agent": "PortfolioMonitor research@example.com"}
 
 # ── Our tracked managers — CIKs we want to extract from the bulk file ─────────
-# Numeric CIK as it appears in the 13F data sets (no leading zeros padding
-# assumed here — we normalize both sides when matching).
-TRACKED_MANAGERS = {
+# IMPORTANT: SEC's 13F data sets store CIK zero-padded to 10 digits as a
+# string (e.g. "0001336528"), confirmed via debug_cik_formats() output —
+# raw unpadded CIKs will silently never match. Keys here are normalized
+# to that exact format via .zfill(10) so lookups against SUBMISSION/
+# INFOTABLE rows work directly without per-comparison reformatting.
+_RAW_TRACKED_MANAGERS = {
     "1336528": "Bill Ackman / Pershing Square",
     "1536411": "Stan Druckenmiller / Duquesne",
     "1067983": "Warren Buffett / Berkshire",
@@ -71,6 +74,7 @@ TRACKED_MANAGERS = {
     "1107310": "Ricky Sandler / Eminence Capital",
     "1138995": "Larry Robbins / Glenview Capital",
 }
+TRACKED_MANAGERS = {cik.zfill(10): name for cik, name in _RAW_TRACKED_MANAGERS.items()}
 
 OUTPUT_FILE = "13f_holdings_cache.json"
 DOWNLOAD_DIR = "13f_bulk_temp"
