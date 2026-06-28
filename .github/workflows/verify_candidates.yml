@@ -6,6 +6,7 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 8  # hard ceiling — auto-cancels instead of hanging indefinitely
     steps:
       - uses: actions/checkout@v4.2.2
       - uses: actions/setup-python@v5.6.0
@@ -13,4 +14,5 @@ jobs:
           python-version: "3.11"
       - run: pip install requests
       - name: Run candidate verification
-        run: python verify_candidates.py
+        timeout-minutes: 7  # per-step ceiling, leaves buffer for setup steps
+        run: python -u verify_candidates.py

@@ -98,10 +98,14 @@ def search_cik_by_name(name: str) -> str | None:
         return None
 
 
-def verify_manager(name: str, cik: str | None) -> dict:
+def verify_manager(name: str, cik: str | None, fetch_holdings: bool = True) -> dict:
     """
     Check a single manager against EDGAR. Returns a result dict with
     status, real company name on file, filing date, holdings count, and value.
+
+    fetch_holdings=False skips the heavier holdings XML fetch entirely —
+    use this to isolate whether a hang/slowdown is in the lightweight
+    submissions API call or the heavier per-filing holdings fetch.
     """
     result = {
         "name": name,
@@ -118,6 +122,7 @@ def verify_manager(name: str, cik: str | None) -> dict:
 
     # If no CIK provided, attempt a name-based search
     if not cik:
+        print(f"    [debug] No CIK on file — attempting name search...", flush=True)
         found_cik = search_cik_by_name(name)
         if found_cik:
             cik = found_cik
@@ -127,10 +132,12 @@ def verify_manager(name: str, cik: str | None) -> dict:
             result["note"] = "Could not auto-resolve CIK — needs manual lookup"
             return result
 
-    # Pull submissions history
+    # Pull submissions history (lightweight — should be fast)
+    print(f"    [debug] Fetching submissions JSON for CIK {cik}...", flush=True)
     try:
         sub_url = f"https://data.sec.gov/submissions/CIK{cik.zfill(10)}.json"
-        resp = requests.get(sub_url, headers=HEADERS, timeout=15)
+        resp = requests.get(sub_url, headers=HEADERS, timeout=10)
+        print(f"    [debug] Submissions response: {resp.status_code}", flush=True)
 
         if resp.status_code == 404:
             result["note"] = f"CIK {cik} does not exist on EDGAR"
@@ -165,20 +172,25 @@ def verify_manager(name: str, cik: str | None) -> dict:
         result["status"] = "ACTIVE" if days_old < 200 else "STALE"
 
         # Try to pull actual holdings from the filing for a sanity check
-        if acc_no:
-            time.sleep(1.0)  # more conservative spacing before hitting EDGAR again
+        if acc_no and fetch_holdings:
+            print(f"    [debug] Fetching holdings for acc_no {acc_no}...", flush=True)
+            time.sleep(0.5)
             holdings = fetch_13f_holdings_summary(cik, acc_no)
             result["holdings_count"]   = holdings.get("count")
             result["portfolio_value"]  = holdings.get("value")
             result["top_holdings"]     = holdings.get("top_holdings", [])
+            print(f"    [debug] Holdings fetch complete: {holdings.get('count')} positions", flush=True)
+        elif not fetch_holdings:
+            print(f"    [debug] Skipping holdings fetch (disabled for this run)", flush=True)
 
     except Exception as e:
         result["note"] = f"Error: {e}"
+        print(f"    [debug] Exception during verify: {e}", flush=True)
 
     return result
 
 
-def fetch_13f_holdings_summary(cik: str, acc_no: str, retries: int = 3) -> dict:
+def fetch_13f_holdings_summary(cik: str, acc_no: str, retries: int = 2) -> dict:
     """
     Fetch the actual 13F information table XML and return a summary:
     holdings count, total value, top 5 by value.
@@ -203,7 +215,7 @@ def fetch_13f_holdings_summary(cik: str, acc_no: str, retries: int = 3) -> dict:
 
     for attempt in range(retries):
         try:
-            idx = requests.get(index_url, headers=HEADERS, timeout=15)
+            idx = requests.get(index_url, headers=HEADERS, timeout=8)
             if idx.status_code == 503:
                 wait = 3 * (attempt + 1)
                 print(f"    [debug] 503 on index page, attempt {attempt+1}/{retries}, "
@@ -238,7 +250,7 @@ def fetch_13f_holdings_summary(cik: str, acc_no: str, retries: int = 3) -> dict:
         time.sleep(1.0)  # space out the second request more conservatively
 
         for attempt in range(retries):
-            xml_resp = requests.get(xml_url, headers=HEADERS, timeout=15)
+            xml_resp = requests.get(xml_url, headers=HEADERS, timeout=8)
             if xml_resp.status_code == 503:
                 wait = 3 * (attempt + 1)
                 print(f"    [debug] 503 on XML fetch, attempt {attempt+1}/{retries}, "
@@ -277,25 +289,37 @@ def fetch_13f_holdings_summary(cik: str, acc_no: str, retries: int = 3) -> dict:
 
 
 def main():
-    print("=" * 70)
-    print("FUND MANAGER CANDIDATE VERIFICATION")
-    print(f"Run at: {datetime.utcnow().isoformat()} UTC")
-    print("=" * 70)
+    import sys
+    print("=" * 70, flush=True)
+    print("FUND MANAGER CANDIDATE VERIFICATION", flush=True)
+    print(f"Run at: {datetime.utcnow().isoformat()} UTC", flush=True)
+    print("=" * 70, flush=True)
+
+    # Toggle: set to False to skip the heavier holdings fetch entirely and
+    # ONLY do the lightweight filing-date check. Use this first to isolate
+    # whether a hang is in the submissions API call or the holdings fetch.
+    FETCH_HOLDINGS = True
 
     all_managers = {**CURRENT_ROSTER, **CANDIDATES}
     results = []
 
     print(f"\nVerifying {len(all_managers)} managers ({len(CURRENT_ROSTER)} current + "
-          f"{len(CANDIDATES)} candidates)...\n")
+          f"{len(CANDIDATES)} candidates)...", flush=True)
+    print(f"Holdings fetch enabled: {FETCH_HOLDINGS}\n", flush=True)
 
-    for name, cik in all_managers.items():
+    for idx, (name, cik) in enumerate(all_managers.items(), 1):
         is_current = name in CURRENT_ROSTER
         tag = "[CURRENT]" if is_current else "[CANDIDATE]"
-        print(f"\n{tag} Checking: {name}...")
+        t0 = time.time()
+        print(f"\n[{idx}/{len(all_managers)}] {tag} Checking: {name} "
+              f"(started {datetime.utcnow().strftime('%H:%M:%S')} UTC)...", flush=True)
 
-        result = verify_manager(name, cik)
+        result = verify_manager(name, cik, fetch_holdings=FETCH_HOLDINGS)
         result["is_current"] = is_current
         results.append(result)
+
+        elapsed = time.time() - t0
+        print(f"  [{idx}/{len(all_managers)}] Done in {elapsed:.1f}s", flush=True)
 
         status_icon = {
             "ACTIVE": "✅",
