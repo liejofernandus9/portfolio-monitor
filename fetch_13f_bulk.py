@@ -78,25 +78,39 @@ DOWNLOAD_DIR = "13f_bulk_temp"
 
 def get_current_quarter_url() -> tuple[str, str]:
     """
-    Compute the current quarter's bulk file URL based on today's date.
-    SEC publishes 4x/year: files run Mar-May, Jun-Aug, Sep-Nov, Dec-Feb.
+    Compute the most recently COMPLETED quarter's bulk file URL.
+
+    SEC publishes 4x/year, shortly after each window closes:
+      Dec-Feb window  -> published ~March
+      Mar-May window  -> published ~June
+      Jun-Aug window  -> published ~September
+      Sep-Nov window  -> published ~December
+
+    So "today" tells us which window most recently CLOSED, not the
+    window we're currently inside of. E.g. on June 28, the Mar-May
+    window closed May 31 and should now be published; the Jun-Aug
+    window won't be published until ~September.
+
     Returns (url, filename).
     """
     today = date.today()
     year  = today.year
 
-    # Determine which 3-month window we're in, per SEC's publish schedule
     if today.month in (3, 4, 5):
-        start, end_month, end_day, end_year = f"01mar{year}", "may", 31, year
+        # We're inside Mar-May -> most recent COMPLETED window is Dec-Feb
+        start_year = year - 1
+        start, end_month, end_day, end_year = f"01dec{start_year}", "feb", 28, year
     elif today.month in (6, 7, 8):
-        start, end_month, end_day, end_year = f"01jun{year}", "aug", 31, year
+        # We're inside Jun-Aug -> most recent COMPLETED window is Mar-May
+        start, end_month, end_day, end_year = f"01mar{year}", "may", 31, year
     elif today.month in (9, 10, 11):
-        start, end_month, end_day, end_year = f"01sep{year}", "nov", 30, year
-    else:  # Dec, Jan, Feb — spans into next year
+        # We're inside Sep-Nov -> most recent COMPLETED window is Jun-Aug
+        start, end_month, end_day, end_year = f"01jun{year}", "aug", 31, year
+    else:  # Dec, Jan, Feb
+        # We're inside Dec-Feb -> most recent COMPLETED window is Sep-Nov
         start_year = year if today.month == 12 else year - 1
-        start = f"01dec{start_year}"
-        end_year = year if today.month == 12 else year
-        end_month, end_day = "feb", 28  # 28 is safe; SEC's naming doesn't adjust for leap years in filename
+        end_year   = start_year
+        start, end_month, end_day = f"01sep{start_year}", "nov", 30
 
     filename = f"{start}-{end_day}{end_month}{end_year}_form13f.zip"
     url = f"https://www.sec.gov/files/structureddata/data/form-13f-data-sets/{filename}"
