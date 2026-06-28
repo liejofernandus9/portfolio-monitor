@@ -39,7 +39,6 @@ CANDIDATES = {
     "Viking Global / Andreas Halvorsen":  None,
     "Whale Rock Capital":                 None,
     "Light Street Capital":               None,
-    "David Tepper / Appaloosa":           None,
     "Seth Klarman / Baupost Group":       None,
     "RTW Investments":                    None,
     "Baker Bros Advisors":                None,
@@ -56,10 +55,10 @@ CANDIDATES = {
 # on equal footing, current + candidates
 CURRENT_ROSTER = {
     "Bill Ackman / Pershing Square": "0001336528",
-    "Michael Burry / Scion":         "0001649339",
     "Stan Druckenmiller / Duquesne": "0001536411",
     "Warren Buffett / Berkshire":    "0001067983",
-    "Philippe Laffont / Coatue":     "0001336920",
+    "Philippe Laffont / Coatue":     "0001135730",  # FIXED — was 0001336920 (Leidos Holdings, wrong entity)
+    "David Tepper / Appaloosa":      "0001656456",  # REPLACED Burry — Scion deregistered Nov 2025
 }
 
 
@@ -167,7 +166,7 @@ def verify_manager(name: str, cik: str | None) -> dict:
 
         # Try to pull actual holdings from the filing for a sanity check
         if acc_no:
-            time.sleep(0.3)  # respect SEC rate limits
+            time.sleep(1.0)  # more conservative spacing before hitting EDGAR again
             holdings = fetch_13f_holdings_summary(cik, acc_no)
             result["holdings_count"]   = holdings.get("count")
             result["portfolio_value"]  = holdings.get("value")
@@ -179,7 +178,7 @@ def verify_manager(name: str, cik: str | None) -> dict:
     return result
 
 
-def fetch_13f_holdings_summary(cik: str, acc_no: str) -> dict:
+def fetch_13f_holdings_summary(cik: str, acc_no: str, retries: int = 3) -> dict:
     """
     Fetch the actual 13F information table XML and return a summary:
     holdings count, total value, top 5 by value.
@@ -187,6 +186,10 @@ def fetch_13f_holdings_summary(cik: str, acc_no: str) -> dict:
     NOTE: 13F filings report nameOfIssuer + cusip, NOT a ticker field —
     the SEC schema has no ticker element. Top holdings are reported by
     issuer name; ticker resolution (where needed) happens elsewhere.
+
+    Retries on 503 (EDGAR rate limiting / temporary unavailability) with
+    increasing backoff, since hammering 28 managers back to back can
+    trigger temporary throttling even at conservative request rates.
     """
     import re
     import xml.etree.ElementTree as ET
@@ -198,12 +201,26 @@ def fetch_13f_holdings_summary(cik: str, acc_no: str) -> dict:
     )
     out = {"count": 0, "value": 0, "top_holdings": []}
 
-    try:
-        idx = requests.get(index_url, headers=HEADERS, timeout=15)
-        idx.raise_for_status()
+    for attempt in range(retries):
+        try:
+            idx = requests.get(index_url, headers=HEADERS, timeout=15)
+            if idx.status_code == 503:
+                wait = 3 * (attempt + 1)
+                print(f"    [debug] 503 on index page, attempt {attempt+1}/{retries}, "
+                      f"waiting {wait}s...")
+                time.sleep(wait)
+                continue
+            idx.raise_for_status()
+            break
+        except requests.exceptions.HTTPError as e:
+            if attempt == retries - 1:
+                print(f"    [debug] Index page fetch failed after {retries} attempts: {e}")
+                return out
+            time.sleep(2 * (attempt + 1))
+    else:
+        return out
 
-        # Broaden match: info table XML filenames vary (infotable, form13f,
-        # primary_doc, or just a lone .xml alongside the main submission doc)
+    try:
         xml_match = re.search(
             r'href="(/Archives/edgar/data/[^"]+(?:infotable|13f)[^"]*\.xml)"',
             idx.text, re.IGNORECASE
@@ -218,9 +235,20 @@ def fetch_13f_holdings_summary(cik: str, acc_no: str) -> dict:
             return out
 
         xml_url = "https://www.sec.gov" + xml_match.group(1)
-        time.sleep(0.3)
-        xml_resp = requests.get(xml_url, headers=HEADERS, timeout=15)
-        xml_resp.raise_for_status()
+        time.sleep(1.0)  # space out the second request more conservatively
+
+        for attempt in range(retries):
+            xml_resp = requests.get(xml_url, headers=HEADERS, timeout=15)
+            if xml_resp.status_code == 503:
+                wait = 3 * (attempt + 1)
+                print(f"    [debug] 503 on XML fetch, attempt {attempt+1}/{retries}, "
+                      f"waiting {wait}s...")
+                time.sleep(wait)
+                continue
+            xml_resp.raise_for_status()
+            break
+        else:
+            return out
 
         root = ET.fromstring(xml_resp.content)
         holdings = []
@@ -243,7 +271,7 @@ def fetch_13f_holdings_summary(cik: str, acc_no: str) -> dict:
             print(f"    [debug] XML parsed but 0 infoTable entries found for CIK {cik}")
 
     except Exception as e:
-        print(f"    [debug] 13F XML fetch/parse failed for CIK {cik}: {e}")
+        print(f"    [debug] 13F XML parse failed for CIK {cik}: {e}")
 
     return out
 
@@ -287,14 +315,15 @@ def main():
                   f"${result['portfolio_value']:,.0f} thousand total value")
         if result["top_holdings"]:
             top_str = ", ".join(
-                f"{h['ticker'] or h['name'][:15]} (${h['value']:,.0f}K)"
+                f"{h['name'][:20]} (${h['value']:,.0f}K)"
                 for h in result["top_holdings"][:3]
             )
             print(f"  Top holdings: {top_str}")
         if result["note"]:
             print(f"  Note: {result['note']}")
 
-        time.sleep(0.5)  # stay well within SEC's 10 req/sec rate limit
+        time.sleep(1.5)  # more conservative spacing — avoid tripping EDGAR's rate limit
+                          # across 28 managers x 2 requests each in one run
 
     # ── Summary report ────────────────────────────────────────────────────────
     print("\n" + "=" * 70)
