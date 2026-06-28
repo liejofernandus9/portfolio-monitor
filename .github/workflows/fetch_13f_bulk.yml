@@ -2,6 +2,12 @@ name: Fetch 13F Bulk Data
 
 on:
   workflow_dispatch:
+  # NOTE: not on a schedule yet — SEC only publishes a new file ~4x/year,
+  # so this should be triggered manually after a new quarterly file drops,
+  # or wired to a quarterly cron once we're confident in the pipeline.
+
+permissions:
+  contents: write  # needed to commit manager_performance_history.json back
 
 jobs:
   fetch:
@@ -9,23 +15,52 @@ jobs:
     timeout-minutes: 15  # ~95MB download + extraction + parsing, generous buffer
     steps:
       - uses: actions/checkout@v4.2.2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: actions/setup-python@v5.6.0
         with:
           python-version: "3.11"
+
       - run: pip install requests
+
       - name: Check available disk space
         run: df -h /
-      - name: Fetch and parse 13F bulk data
+
+      - name: Restore prior performance history
+        uses: actions/cache@v4.2.3
+        with:
+          path: manager_performance_history.json
+          key: manager-perf-history-${{ runner.os }}-v1
+          restore-keys: |
+            manager-perf-history-${{ runner.os }}-
+
+      - name: Fetch, parse, and score 13F bulk data
         timeout-minutes: 12
+        env:
+          ALPACA_API_KEY:    ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
         run: python -u fetch_13f_bulk.py
-      - name: Show output file size
+
+      - name: Show output file sizes
         if: always()
         run: |
-          ls -lh 13f_holdings_cache.json 2>/dev/null || echo "Output file not created"
-      - name: Upload output as artifact
+          ls -lh 13f_holdings_cache.json 2>/dev/null || echo "Holdings cache not created"
+          ls -lh manager_performance_history.json 2>/dev/null || echo "Performance history not created"
+
+      - name: Save updated performance history (for next cycle)
+        if: always()
+        uses: actions/cache@v4.2.3
+        with:
+          path: manager_performance_history.json
+          key: manager-perf-history-${{ runner.os }}-v1
+
+      - name: Upload outputs as artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: 13f-holdings-cache
-          path: 13f_holdings_cache.json
-          retention-days: 90
+          name: 13f-cycle-outputs
+          path: |
+            13f_holdings_cache.json
+            manager_performance_history.json
+          retention-days: 365

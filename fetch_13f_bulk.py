@@ -49,16 +49,25 @@ HEADERS = {"User-Agent": "PortfolioMonitor research@example.com"}
 # ── Our tracked managers — CIKs we want to extract from the bulk file ─────────
 # IMPORTANT: SEC's 13F data sets store CIK zero-padded to 10 digits as a
 # string (e.g. "0001336528"), confirmed via debug_cik_formats() output —
-# raw unpadded CIKs will silently never match. Keys here are normalized
-# to that exact format via .zfill(10) so lookups against SUBMISSION/
-# INFOTABLE rows work directly without per-comparison reformatting.
-_RAW_TRACKED_MANAGERS = {
+# raw unpadded CIKs will silently never match. Keys are normalized to that
+# exact format via .zfill(10) so lookups against SUBMISSION/INFOTABLE rows
+# work directly without per-comparison reformatting.
+#
+# Split explicitly into CURRENT (the live roster monitor.py actually trades
+# signals from) vs CANDIDATES (confirmed-active managers being evaluated for
+# a persistence-based swap). This split is explicit rather than inferred
+# from dict order/position, since relying on "the first N entries" silently
+# breaks if anyone reorders or edits this list later.
+_RAW_CURRENT_ROSTER = {
     "1336528": "Bill Ackman / Pershing Square",
     "1536411": "Stan Druckenmiller / Duquesne",
     "1067983": "Warren Buffett / Berkshire",
     "1135730": "Philippe Laffont / Coatue",
     "1656456": "David Tepper / Appaloosa",
-    # Candidates confirmed ACTIVE from verify_candidates.py — add more as needed
+}
+
+# Candidates confirmed ACTIVE from verify_candidates.py — add more as needed
+_RAW_CANDIDATE_POOL = {
     "1040273": "Dan Loeb / Third Point",
     "1517137": "Jeff Smith / Starboard Value",
     "1167483": "Chase Coleman / Tiger Global",
@@ -74,7 +83,276 @@ _RAW_TRACKED_MANAGERS = {
     "1107310": "Ricky Sandler / Eminence Capital",
     "1138995": "Larry Robbins / Glenview Capital",
 }
-TRACKED_MANAGERS = {cik.zfill(10): name for cik, name in _RAW_TRACKED_MANAGERS.items()}
+
+CURRENT_ROSTER_CIKS = {cik.zfill(10) for cik in _RAW_CURRENT_ROSTER}
+TRACKED_MANAGERS = {
+    cik.zfill(10): name
+    for cik, name in {**_RAW_CURRENT_ROSTER, **_RAW_CANDIDATE_POOL}.items()
+}
+
+
+# Duplicated from monitor.py — see note in main() on why this isn't imported.
+# 13F filings report nameOfIssuer + cusip, never a ticker symbol directly,
+# so this map resolves the company names we actually expect to see in our
+# tracked managers' holdings to tradeable tickers.
+ISSUER_NAME_TO_TICKER = {
+    "AMAZON COM": "AMZN", "AMAZONCOM": "AMZN", "AMAZON COM INC": "AMZN",
+    "MICROSOFT CORP": "MSFT", "MICROSOFT": "MSFT",
+    "ALPHABET INC": "GOOGL", "ALPHABET INC-CL C": "GOOG", "ALPHABET INC-CL A": "GOOGL",
+    "APPLE INC": "AAPL", "APPLE COMPUTER": "AAPL",
+    "META PLATFORMS": "META", "META PLATFORMS INC": "META",
+    "NVIDIA CORP": "NVDA", "NVIDIA CORPORATION": "NVDA",
+    "BROADCOM INC": "AVGO", "BROADCOM": "AVGO",
+    "TAIWAN SEMICONDUCTOR": "TSM", "TAIWAN SEMICONDUCTOR-SP ADR": "TSM",
+    "MICRON TECHNOLOGY": "MU", "MICRON TECHNOLOGY INC": "MU",
+    "UBER TECHNOLOGIES": "UBER", "UBER TECHNOLOGIES INC": "UBER",
+    "ORACLE CORP": "ORCL", "ORACLE CORPORATION": "ORCL",
+    "PALANTIR TECHNOLOGIES": "PLTR",
+    "SALESFORCE INC": "CRM", "SALESFORCE COM": "CRM",
+    "PALO ALTO NETWORKS": "PANW",
+    "BANK OF AMERICA": "BAC", "BANK OF AMERICA CORP": "BAC",
+    "AMERICAN EXPRESS": "AXP", "AMERICAN EXPRESS CO": "AXP",
+    "COCA COLA": "KO", "COCA COLA CO": "KO",
+    "CHEVRON CORP": "CVX", "CHEVRON CORPORATION": "CVX",
+    "OCCIDENTAL PETROLEUM": "OXY",
+    "MOODYS CORP": "MCO", "MOODY'S CORP": "MCO",
+    "BROOKFIELD CORP": "BN", "BROOKFIELD": "BN",
+    "RESTAURANT BRANDS INTL": "QSR", "RESTAURANT BRANDS": "QSR",
+    "HILTON WORLDWIDE": "HLT", "HILTON WORLDWIDE HOLDINGS": "HLT",
+    "CANADIAN PACIFIC": "CP", "CANADIAN PACIFIC KANSAS CITY": "CP",
+    "NATERA INC": "NTRA",
+    "INSMED INC": "INSM",
+    "CAREDX INC": "CAI",
+    "YPF SOCIEDAD ANONIMA": "YPF", "YPF SA": "YPF",
+    "ISHARES MSCI BRAZIL": "EWZ",
+    "STMICROELECTRONICS": "STM",
+    "VISTRA CORP": "VST",
+    "SANDISK CORP": "SNDK",
+    "WHIRLPOOL CORP": "WHR",
+    "ALIBABA GROUP": "BABA", "ALIBABA GROUP HOLDING": "BABA",
+}
+
+PERSISTENCE_FILE = "manager_performance_history.json"
+
+# Manager must appear in 2+ prior cycles before being eligible to:
+#   (a) trigger a swap as a candidate, OR
+#   (b) be protected by persistence as a current manager.
+# This is symmetric on purpose — a brand-new current manager (e.g. a
+# recent replacement) gets the same 2-cycle grace period as a candidate
+# before either side of a swap decision can be judged on persistence.
+MIN_CYCLES_FOR_ELIGIBILITY = 2
+
+ALPACA_API_KEY    = os.environ.get("ALPACA_API_KEY", "")
+ALPACA_SECRET_KEY = os.environ.get("ALPACA_SECRET_KEY", "")
+ALPACA_DATA_URL   = "https://data.alpaca.markets/v2/stocks"
+
+
+def get_stock_prices_30d_ago_and_now(tickers: list[str]) -> dict:
+    """
+    Fetch current price and price ~30 days ago for a list of tickers via
+    Alpaca. Returns {ticker: {"then": float, "now": float}}. Tickers that
+    fail to resolve are simply omitted — callers must handle missing data.
+    """
+    if not ALPACA_API_KEY or not ALPACA_SECRET_KEY:
+        print("[warn] Alpaca credentials not set — skipping performance calc",
+              flush=True)
+        return {}
+
+    headers = {
+        "APCA-API-KEY-ID":     ALPACA_API_KEY,
+        "APCA-API-SECRET-KEY": ALPACA_SECRET_KEY,
+    }
+    from datetime import timedelta
+    end   = datetime.utcnow()
+    start = end - timedelta(days=35)  # small buffer before the 30d mark
+
+    prices = {}
+    for ticker in tickers:
+        try:
+            resp = requests.get(
+                f"{ALPACA_DATA_URL}/{ticker}/bars",
+                params={
+                    "start": start.strftime("%Y-%m-%d"),
+                    "end":   end.strftime("%Y-%m-%d"),
+                    "timeframe": "1Day",
+                    "limit": 60,
+                },
+                headers=headers, timeout=10,
+            )
+            if resp.status_code != 200:
+                continue
+            bars = resp.json().get("bars", [])
+            if len(bars) < 2:
+                continue
+            prices[ticker] = {
+                "then": float(bars[0]["c"]),
+                "now":  float(bars[-1]["c"]),
+            }
+        except Exception:
+            continue
+        time.sleep(0.1)
+
+    return prices
+
+
+def compute_basket_return(holdings: list[dict], prices: dict,
+                          manager_name: str = "") -> float | None:
+    """
+    Reconstruct a manager's weighted basket return over the trailing window,
+    using each holding's disclosed dollar value as its weight.
+
+    Returns None only if we have almost nothing to go on. NOTE: our
+    ISSUER_NAME_TO_TICKER map is small (~37 entries) relative to how many
+    distinct holdings large managers report (Buffett: 90, Coatue: 198,
+    Saba: 390) — most holdings will NOT resolve to a ticker on any given
+    manager. A strict percentage-of-total-holdings threshold (e.g. 20%)
+    would fail almost every manager on every run given the map's current
+    size. Instead we require a modest absolute minimum of resolved,
+    meaningfully-weighted positions, and log the resolution rate plainly
+    so a consistently low rate is visible rather than silently swallowed.
+    """
+    total_weight = 0.0
+    weighted_return = 0.0
+    resolved_count = 0
+    total_disclosed_value = sum(h.get("value", 0) for h in holdings)
+
+    for h in holdings:
+        ticker = h.get("ticker")
+        if not ticker or ticker not in prices:
+            continue
+        p = prices[ticker]
+        if p["then"] <= 0:
+            continue
+        pct_return = (p["now"] - p["then"]) / p["then"]
+        weight = h.get("value", 0)
+        if weight <= 0:
+            continue
+        weighted_return += pct_return * weight
+        total_weight += weight
+        resolved_count += 1
+
+    coverage_pct = (total_weight / total_disclosed_value * 100) if total_disclosed_value > 0 else 0
+
+    print(f"    [perf] {manager_name}: resolved {resolved_count}/{len(holdings)} "
+          f"holdings, covering {coverage_pct:.1f}% of disclosed portfolio value "
+          f"by weight", flush=True)
+
+    # Fail safe on a genuinely thin sample (almost nothing resolved) or
+    # near-zero value coverage — but don't demand an unrealistic absolute
+    # count given our map's current size. This threshold itself is a
+    # judgment call, not a verified-correct number — revisit once the
+    # issuer map is expanded and we can see real coverage rates across
+    # several cycles.
+    MIN_RESOLVED_HOLDINGS = 3
+    MIN_VALUE_COVERAGE_PCT = 5.0
+
+    if resolved_count < MIN_RESOLVED_HOLDINGS or coverage_pct < MIN_VALUE_COVERAGE_PCT:
+        print(f"    [perf] {manager_name}: EXCLUDED — below minimum threshold "
+              f"({MIN_RESOLVED_HOLDINGS} holdings / {MIN_VALUE_COVERAGE_PCT}% "
+              f"coverage)", flush=True)
+        return None
+
+    return (weighted_return / total_weight) * 100  # as a percentage
+
+
+def load_persistence_history() -> dict:
+    if os.path.exists(PERSISTENCE_FILE):
+        with open(PERSISTENCE_FILE) as f:
+            return json.load(f)
+    return {"cycles": []}  # list of {"cycle_date": ..., "scores": {cik: {...}}}
+
+
+def save_persistence_history(history: dict):
+    with open(PERSISTENCE_FILE, "w") as f:
+        json.dump(history, f, indent=2)
+
+
+def evaluate_swaps(history: dict, current_cycle_scores: dict,
+                   current_roster_ciks: set) -> list[dict]:
+    """
+    Apply the persistence-based swap rule:
+      - A manager/candidate needs MIN_CYCLES_FOR_ELIGIBILITY prior cycles
+        of data (not counting this one) before being eligible on EITHER
+        side of a swap decision.
+      - A swap only fires if a candidate outranked a specific current
+        manager in BOTH this cycle and the immediately preceding cycle.
+
+    Returns a list of recommended swaps: [{"out": cik, "in": cik, "reason": ...}]
+    Does not apply the swap automatically — surfaces it for review/logging,
+    since this changes what monitor.py treats as the "current" roster.
+    """
+    prior_cycles = history.get("cycles", [])
+    if len(prior_cycles) < 1:
+        print("[info] No prior cycle history yet — first cycle, no swaps possible.",
+              flush=True)
+        return []
+
+    last_cycle = prior_cycles[-1]["scores"]
+
+    # Build cycle-count per CIK across all history (for bootstrap eligibility)
+    cycle_counts = {}
+    for cycle in prior_cycles:
+        for cik in cycle["scores"]:
+            cycle_counts[cik] = cycle_counts.get(cik, 0) + 1
+
+    def is_eligible(cik: str) -> bool:
+        return cycle_counts.get(cik, 0) >= MIN_CYCLES_FOR_ELIGIBILITY
+
+    # Rank this cycle's scores (higher return = better rank)
+    ranked_this_cycle = sorted(
+        current_cycle_scores.items(),
+        key=lambda kv: kv[1].get("return_30d", float("-inf")),
+        reverse=True,
+    )
+    ranked_last_cycle = sorted(
+        last_cycle.items(),
+        key=lambda kv: kv[1].get("return_30d", float("-inf")),
+        reverse=True,
+    )
+    rank_this = {cik: i for i, (cik, _) in enumerate(ranked_this_cycle)}
+    rank_last = {cik: i for i, (cik, _) in enumerate(ranked_last_cycle)}
+
+    swaps = []
+    current_managers = [c for c in current_roster_ciks if c in current_cycle_scores]
+    candidates        = [c for c in current_cycle_scores if c not in current_roster_ciks]
+
+    for current_cik in current_managers:
+        if not is_eligible(current_cik):
+            print(f"[info] {current_cycle_scores[current_cik]['name']} not yet "
+                  f"eligible to lose roster spot (only "
+                  f"{cycle_counts.get(current_cik,0)} cycle(s) tracked) — protected.",
+                  flush=True)
+            continue
+
+        worst_rank_this = rank_this.get(current_cik, -1)
+
+        for cand_cik in candidates:
+            if not is_eligible(cand_cik):
+                continue
+            if cand_cik not in last_cycle or current_cik not in last_cycle:
+                continue  # can't confirm persistence without both cycles present
+
+            outranked_this  = rank_this.get(cand_cik, 999) < worst_rank_this
+            outranked_last  = rank_last.get(cand_cik, 999) < rank_last.get(current_cik, -1)
+
+            if outranked_this and outranked_last:
+                swaps.append({
+                    "out": current_cik,
+                    "out_name": current_cycle_scores[current_cik]["name"],
+                    "in": cand_cik,
+                    "in_name": current_cycle_scores[cand_cik]["name"],
+                    "reason": (
+                        f"{current_cycle_scores[cand_cik]['name']} outranked "
+                        f"{current_cycle_scores[current_cik]['name']} in both "
+                        f"this cycle and the prior cycle "
+                        f"({current_cycle_scores[cand_cik]['return_30d']:.1f}% vs "
+                        f"{current_cycle_scores[current_cik]['return_30d']:.1f}% "
+                        f"this cycle)"
+                    ),
+                })
+
+    return swaps
+
 
 OUTPUT_FILE = "13f_holdings_cache.json"
 DOWNLOAD_DIR = "13f_bulk_temp"
@@ -330,12 +608,101 @@ def main():
         print(f"  {data['name_on_file']}: {data['holdings_count']} holdings, "
               f"${data['total_value']:,.0f} thousand total value", flush=True)
 
-    # ── Step 6: write clean output JSON ───────────────────────────────────────
+    # ── Step 6: resolve tickers and compute 30-day basket performance ─────────
+    print(f"\n[info] Resolving tickers and computing 30-day performance...",
+          flush=True)
+
+    # Issuer-name-to-ticker resolution, duplicated from monitor.py rather
+    # than imported — importing monitor.py directly would execute its
+    # top-level os.environ["ALPACA_API_KEY"] etc. and crash this script
+    # if those exact secrets aren't present in this job's environment.
+    # Keeping this script genuinely standalone, as intended.
+    def resolve_ticker_from_issuer(issuer_name: str) -> str | None:
+        if not issuer_name:
+            return None
+        n = issuer_name.upper().strip()
+        for suffix in [", INC.", " INC.", " INC", ", CORP.", " CORP.", " CORP",
+                       ", CO.", " CO.", " CO", " LTD", " LLC", ", L.P.", " LP",
+                       " PLC", " SA", " AG", " HOLDINGS", " HOLDING"]:
+            if n.endswith(suffix):
+                n = n[: -len(suffix)]
+        n = n.replace(".", "").replace(",", "").strip()
+        if n in ISSUER_NAME_TO_TICKER:
+            return ISSUER_NAME_TO_TICKER[n]
+        if issuer_name.upper().strip() in ISSUER_NAME_TO_TICKER:
+            return ISSUER_NAME_TO_TICKER[issuer_name.upper().strip()]
+        return None
+
+    all_tickers_needed = set()
+    for cik, data in results.items():
+        for h in data["holdings"]:
+            t = resolve_ticker_from_issuer(h["name_of_issuer"])
+            h["ticker"] = t
+            if t:
+                all_tickers_needed.add(t)
+
+    print(f"[info] Resolved tickers for performance calc across "
+          f"{len(all_tickers_needed)} unique symbols", flush=True)
+
+    prices = get_stock_prices_30d_ago_and_now(list(all_tickers_needed))
+    print(f"[info] Fetched price data for {len(prices)}/{len(all_tickers_needed)} "
+          f"tickers", flush=True)
+
+    current_cycle_scores = {}
+    for cik, data in results.items():
+        ret = compute_basket_return(data["holdings"], prices, data["name_on_file"])
+        current_cycle_scores[cik] = {
+            "name": data["name_on_file"],
+            "return_30d": ret,
+        }
+        if ret is not None:
+            print(f"  {data['name_on_file']}: {ret:+.2f}% (30d basket return)",
+                  flush=True)
+        else:
+            print(f"  {data['name_on_file']}: insufficient price data — "
+                  f"excluded from this cycle's ranking", flush=True)
+
+    # Drop entries with no resolvable return — can't rank what we can't measure
+    current_cycle_scores = {
+        cik: v for cik, v in current_cycle_scores.items()
+        if v["return_30d"] is not None
+    }
+
+    # ── Step 7: persistence-based swap evaluation ─────────────────────────────
+    print(f"\n[info] Loading performance history and evaluating swaps...",
+          flush=True)
+    history = load_persistence_history()
+
+    current_roster_ciks = CURRENT_ROSTER_CIKS
+
+    recommended_swaps = evaluate_swaps(history, current_cycle_scores, current_roster_ciks)
+
+    if recommended_swaps:
+        print(f"\n[info] {len(recommended_swaps)} swap(s) recommended:", flush=True)
+        for s in recommended_swaps:
+            print(f"  SWAP OUT: {s['out_name']} -> SWAP IN: {s['in_name']}", flush=True)
+            print(f"    Reason: {s['reason']}", flush=True)
+    else:
+        print(f"\n[info] No swaps recommended this cycle (either no persistence "
+              f"agreement, or managers still in bootstrap period).", flush=True)
+
+    # Append this cycle to history and save
+    history["cycles"].append({
+        "cycle_date": datetime.utcnow().strftime("%Y-%m-%d"),
+        "scores": current_cycle_scores,
+    })
+    save_persistence_history(history)
+    print(f"\n[info] Performance history saved — {len(history['cycles'])} "
+          f"total cycles tracked", flush=True)
+
+    # ── Step 8: write clean output JSON ───────────────────────────────────────
     output = {
         "quarter_file": filename,
         "fetched_at": datetime.utcnow().isoformat(),
         "managers": results,
         "unmatched_ciks": [TRACKED_MANAGERS[c] for c in missing_ciks],
+        "performance_scores": current_cycle_scores,
+        "recommended_swaps": recommended_swaps,
     }
 
     with open(OUTPUT_FILE, "w") as f:
