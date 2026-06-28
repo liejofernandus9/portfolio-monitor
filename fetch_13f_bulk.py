@@ -178,6 +178,33 @@ def load_tsv(path: str) -> list[dict]:
     return rows
 
 
+# ── Debug helper ──────────────────────────────────────────────────────────────
+def debug_cik_formats(submission_path: str, sample_ciks: list[str]):
+    """
+    Diagnostic: print how CIK actually appears in the SUBMISSION file,
+    confirming exact format/padding/type before matching.
+    """
+    rows = load_tsv(submission_path)
+    print(f"\n[debug] First 5 raw CIK values from SUBMISSION.tsv:")
+    for row in rows[:5]:
+        raw = row.get("CIK", "")
+        print(f"  repr={raw!r} type=str len={len(raw)}")
+
+    print(f"\n[debug] Searching for our known CIKs in any form...")
+    all_ciks_seen = set(row.get("CIK", "") for row in rows)
+    for target in sample_ciks:
+        # Try exact, zero-padded to 10, and stripped-of-leading-zeros variants
+        variants = {
+            target,
+            target.zfill(10),
+            target.lstrip("0"),
+            str(int(target)) if target.isdigit() else target,
+        }
+        matches = variants & all_ciks_seen
+        print(f"  Target {target}: variants tried {variants} -> "
+              f"{'FOUND: ' + str(matches) if matches else 'NOT FOUND in any form'}")
+
+
 def main():
     print("=" * 70, flush=True)
     print("13F BULK DATA FETCH", flush=True)
@@ -218,6 +245,10 @@ def main():
     print(f"[info] SUBMISSION has {len(submissions)} rows. "
           f"Sample columns: {list(submissions[0].keys()) if submissions else 'EMPTY'}",
           flush=True)
+
+    # Diagnostic: confirm exact CIK format before attempting the match —
+    # this caught a real mismatch (padding/type) on the previous run
+    debug_cik_formats(submission_path, ["1336528", "1067983", "1536411"])
 
     # Map CIK -> most recent matching submission (by report date)
     cik_to_submission = {}
