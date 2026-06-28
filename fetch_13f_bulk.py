@@ -150,8 +150,22 @@ ALPACA_DATA_URL   = "https://data.alpaca.markets/v2/stocks"
 def get_stock_prices_30d_ago_and_now(tickers: list[str]) -> dict:
     """
     Fetch current price and price ~30 days ago for a list of tickers via
-    Alpaca. Returns {ticker: {"then": float, "now": float}}. Tickers that
-    fail to resolve are simply omitted — callers must handle missing data.
+    Alpaca's historical bars endpoint. Returns
+    {ticker: {"then": float, "now": float}}.
+
+    IMPORTANT — corrected after a real failed run (0/24 tickers resolved):
+      1. The endpoint is a single multi-symbol GET at /v2/stocks/bars with
+         a comma-separated `symbols` param — NOT /v2/stocks/{ticker}/bars
+         per-symbol, which doesn't exist as a path and was silently
+         failing every single call.
+      2. Free/paper accounts need feed=iex explicitly; without it, requests
+         can be rejected or return empty depending on default feed tier.
+      3. The response shape is {"bars": {"AAPL": [...], "MSFT": [...]}} —
+         a dict keyed by symbol, not a flat list — confirmed against
+         Alpaca's own documented examples before writing this.
+
+    Batches tickers (Alpaca allows multiple symbols per call) rather than
+    one request per ticker, which is both correct and far fewer API calls.
     """
     if not ALPACA_API_KEY or not ALPACA_SECRET_KEY:
         print("[warn] Alpaca credentials not set — skipping performance calc",
@@ -167,30 +181,44 @@ def get_stock_prices_30d_ago_and_now(tickers: list[str]) -> dict:
     start = end - timedelta(days=35)  # small buffer before the 30d mark
 
     prices = {}
-    for ticker in tickers:
+    # Batch in groups to keep individual request/response sizes reasonable
+    BATCH_SIZE = 20
+    for i in range(0, len(tickers), BATCH_SIZE):
+        batch = tickers[i:i + BATCH_SIZE]
         try:
             resp = requests.get(
-                f"{ALPACA_DATA_URL}/{ticker}/bars",
+                f"{ALPACA_DATA_URL}/bars",
                 params={
-                    "start": start.strftime("%Y-%m-%d"),
-                    "end":   end.strftime("%Y-%m-%d"),
+                    "symbols":   ",".join(batch),
+                    "start":     start.strftime("%Y-%m-%d"),
+                    "end":       end.strftime("%Y-%m-%d"),
                     "timeframe": "1Day",
-                    "limit": 60,
+                    "feed":      "iex",  # required on free/paper plans
+                    "limit":     60,
                 },
-                headers=headers, timeout=10,
+                headers=headers, timeout=15,
             )
             if resp.status_code != 200:
+                print(f"    [warn] Alpaca bars request failed for batch "
+                      f"{batch}: HTTP {resp.status_code} — {resp.text[:200]}",
+                      flush=True)
                 continue
-            bars = resp.json().get("bars", [])
-            if len(bars) < 2:
-                continue
-            prices[ticker] = {
-                "then": float(bars[0]["c"]),
-                "now":  float(bars[-1]["c"]),
-            }
-        except Exception:
+
+            bars_by_symbol = resp.json().get("bars", {})
+            for ticker, bars in bars_by_symbol.items():
+                if not bars or len(bars) < 2:
+                    continue
+                prices[ticker] = {
+                    "then": float(bars[0]["c"]),
+                    "now":  float(bars[-1]["c"]),
+                }
+
+        except Exception as e:
+            print(f"    [warn] Alpaca bars fetch exception for batch "
+                  f"{batch}: {e}", flush=True)
             continue
-        time.sleep(0.1)
+
+        time.sleep(0.3)
 
     return prices
 
