@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-06-26T15:58:29.652622",
-  "test_day": 10,
+  "generated_at": "2026-06-29T16:47:00.455991",
+  "test_day": 13,
   "test_total_days": 60,
   "test_ends": "August 15, 2026",
   "cash_balance": 75.0,
   "total_deposited": 250.0,
   "total_invested": 175.0,
-  "portfolio_value": 169.63,
-  "unrealized_pl": -5.36,
+  "portfolio_value": 171.28,
+  "unrealized_pl": -3.71,
   "next_deposit": "June 29, 2026",
-  "our_return_pct": -32.15,
-  "qqq_return_pct": -4.04,
-  "voo_return_pct": -2.71,
+  "our_return_pct": -31.49,
+  "qqq_return_pct": -3.13,
+  "voo_return_pct": -2.33,
   "positions": [
     {
       "symbol": "QQQ",
-      "market_value": 169.627292,
-      "unrealized_pl": -5.362708,
-      "unrealized_plpc": -3.065,
+      "market_value": 171.2833,
+      "unrealized_pl": -3.7067,
+      "unrealized_plpc": -2.118,
       "avg_entry": 735.99,
       "amount_invested": 175.0,
       "conviction_pct": 0,
@@ -110,6 +110,34 @@
       "reason": "",
       "role": "",
       "insider_name": "Jackson Richard A."
+    },
+    {
+      "timestamp": "2026-06-29T16:46:34.215076",
+      "type": "13F",
+      "ticker": "",
+      "source": "Philippe Laffont / Coatue",
+      "score": 0,
+      "conviction_pct": 0,
+      "allocation": 0,
+      "analysis": "New 13F filing by Philippe Laffont / Coatue (2026-05-15). Holdings overlap with 0 watchlist tickers. Flagged for cross-tier scoring.",
+      "order_id": "",
+      "reason": "",
+      "role": "",
+      "insider_name": ""
+    },
+    {
+      "timestamp": "2026-06-29T16:46:35.283671",
+      "type": "13F",
+      "ticker": "",
+      "source": "David Tepper / Appaloosa",
+      "score": 0,
+      "conviction_pct": 0,
+      "allocation": 0,
+      "analysis": "New 13F filing by David Tepper / Appaloosa (2026-05-15). Holdings overlap with 0 watchlist tickers. Flagged for cross-tier scoring.",
+      "order_id": "",
+      "reason": "",
+      "role": "",
+      "insider_name": ""
     }
   ],
   "trade_history": [
@@ -388,14 +416,14 @@
     },
     {
       "name": "Philippe Laffont / Coatue",
-      "cik": "0001336920"
+      "cik": "0001135730"
     },
     {
-      "name": "Michael Burry / Scion",
-      "cik": "0001649339"
+      "name": "David Tepper / Appaloosa",
+      "cik": "0001656456"
     }
   ],
   "last_fund_refresh": "2026-06-15T16:57:37.417156",
-  "fund_refresh_in": 18,
+  "fund_refresh_in": 15,
   "day60_verdict": null
 }
