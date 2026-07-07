@@ -1,27 +1,27 @@
 {
-  "generated_at": "2026-07-06T16:44:00.868804",
-  "test_day": 20,
+  "generated_at": "2026-07-07T16:08:52.641349",
+  "test_day": 21,
   "test_total_days": 60,
   "test_ends": "August 15, 2026",
-  "cash_balance": 325.0,
+  "cash_balance": 97.5,
   "total_deposited": 500.0,
-  "total_invested": 175.0,
-  "portfolio_value": 172.21,
-  "unrealized_pl": -2.78,
+  "total_invested": 402.5,
+  "portfolio_value": 227.49,
+  "unrealized_pl": 0.0,
   "next_deposit": "July 20, 2026",
-  "our_return_pct": -65.56,
-  "qqq_return_pct": -2.58,
-  "voo_return_pct": -0.69,
+  "our_return_pct": -54.5,
+  "qqq_return_pct": -4.56,
+  "voo_return_pct": -1.16,
   "positions": [
     {
       "symbol": "QQQ",
-      "market_value": 172.205814,
-      "unrealized_pl": -2.784186,
-      "unrealized_plpc": -1.591,
-      "avg_entry": 735.99,
-      "amount_invested": 175.0,
+      "market_value": 227.491923,
+      "unrealized_pl": 0.001923,
+      "unrealized_plpc": 0.001,
+      "avg_entry": 709.674,
+      "amount_invested": 227.5,
       "conviction_pct": 0,
-      "entry_date": "2026-06-16T15:23:57.265784",
+      "entry_date": "2026-07-07T16:08:52.418208",
       "fund_managers": [],
       "parked": true
     }
@@ -152,6 +152,20 @@
       "reason": "",
       "role": "",
       "insider_name": ""
+    },
+    {
+      "timestamp": "2026-07-07T16:08:52.418222",
+      "type": "PARKED",
+      "ticker": "QQQ",
+      "source": "System",
+      "score": 0,
+      "conviction_pct": 0,
+      "allocation": 227.5,
+      "analysis": "No qualifying signals today. Parked $227.50 in QQQ to keep cash working. $97.50 kept liquid for incoming signals. Position will be liquidated automatically when a real signal fires.",
+      "order_id": "",
+      "reason": "",
+      "role": "",
+      "insider_name": ""
     }
   ],
   "trade_history": [
@@ -161,6 +175,15 @@
       "side": "buy",
       "amount": 175.0,
       "order_id": "4ec30f9d-3ff4-47ec-b3fa-d05cc76ac862",
+      "source": "Auto-park (no signal)",
+      "conviction_pct": 0
+    },
+    {
+      "timestamp": "2026-07-07T16:08:52.418216",
+      "ticker": "QQQ",
+      "side": "buy",
+      "amount": 227.5,
+      "order_id": "5d3de31b-601d-4fc6-81a9-56644896f65e",
       "source": "Auto-park (no signal)",
       "conviction_pct": 0
     }
@@ -438,6 +461,6 @@
     }
   ],
   "last_fund_refresh": "2026-06-15T16:57:37.417156",
-  "fund_refresh_in": 8,
+  "fund_refresh_in": 7,
   "day60_verdict": null
 }
