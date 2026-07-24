@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-07-23T15:35:15.735642",
-  "test_day": 37,
+  "generated_at": "2026-07-24T15:15:42.353409",
+  "test_day": 38,
   "test_total_days": 60,
   "test_ends": "August 15, 2026",
   "cash_balance": 97.5,
   "total_deposited": 500.0,
   "total_invested": 402.5,
-  "portfolio_value": 384.95,
-  "unrealized_pl": -17.53,
+  "portfolio_value": 385.45,
+  "unrealized_pl": -17.03,
   "next_deposit": "July 20, 2026",
-  "our_return_pct": -23.01,
-  "qqq_return_pct": -7.31,
-  "voo_return_pct": -2.62,
+  "our_return_pct": -22.91,
+  "qqq_return_pct": -7.25,
+  "voo_return_pct": -1.85,
   "positions": [
     {
       "symbol": "QQQ",
-      "market_value": 384.954,
-      "unrealized_pl": -17.525999,
-      "unrealized_plpc": -4.3549999999999995,
+      "market_value": 385.450902,
+      "unrealized_pl": -17.029097,
+      "unrealized_plpc": -4.231,
       "avg_entry": 720.880767,
       "amount_invested": 227.5,
       "conviction_pct": 0,
@@ -180,6 +180,20 @@
       "reason": "",
       "role": "",
       "insider_name": ""
+    },
+    {
+      "timestamp": "2026-07-24T15:15:18.702654",
+      "type": "WATCH",
+      "ticker": "TSM",
+      "source": "Lin Shyue-Shyh ()",
+      "score": 3,
+      "conviction_pct": 0,
+      "allocation": 0,
+      "analysis": "Lin Shyue-Shyh () filed a P transaction on TSM. Score 3/10 \u2014 below the 6/10 buy threshold, so no trade was placed. Held by: Druckenmiller. Reasons: Insider buy (P) (+3)",
+      "order_id": "",
+      "reason": "",
+      "role": "",
+      "insider_name": "Lin Shyue-Shyh"
     }
   ],
   "trade_history": [
@@ -475,6 +489,6 @@
     }
   ],
   "last_fund_refresh": "2026-07-14T15:10:15.251831",
-  "fund_refresh_in": 19,
+  "fund_refresh_in": 18,
   "day60_verdict": null
 }
