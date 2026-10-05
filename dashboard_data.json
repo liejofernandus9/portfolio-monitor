@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-10-02T18:40:45.551291",
-  "test_day": 109,
+  "generated_at": "2026-10-05T21:14:03.618191",
+  "test_day": 112,
   "test_total_days": 60,
   "test_ends": "August 14, 2026",
-  "cash_balance": 1097.5,
-  "total_deposited": 1500.0,
+  "cash_balance": 1347.5,
+  "total_deposited": 1750.0,
   "total_invested": 402.5,
-  "portfolio_value": 417.87,
-  "unrealized_pl": 15.39,
-  "next_deposit": "October 05, 2026",
-  "our_return_pct": -72.14,
-  "qqq_return_pct": 0.65,
-  "voo_return_pct": 1.69,
+  "portfolio_value": 422.31,
+  "unrealized_pl": 19.83,
+  "next_deposit": "October 19, 2026",
+  "our_return_pct": -75.87,
+  "qqq_return_pct": 1.73,
+  "voo_return_pct": 2.47,
   "positions": [
     {
       "symbol": "QQQ",
-      "market_value": 417.866788,
-      "unrealized_pl": 15.386789,
-      "unrealized_plpc": 3.823,
+      "market_value": 422.310992,
+      "unrealized_pl": 19.830993,
+      "unrealized_plpc": 4.9270000000000005,
       "avg_entry": 720.880767,
       "amount_invested": 227.5,
       "conviction_pct": 0,
@@ -348,6 +348,20 @@
       "reason": "",
       "role": "",
       "insider_name": ""
+    },
+    {
+      "timestamp": "2026-10-05T21:13:35.147414",
+      "type": "DEPOSIT",
+      "ticker": "",
+      "source": "System",
+      "score": 0,
+      "conviction_pct": 0,
+      "allocation": 250.0,
+      "analysis": "Biweekly deposit +$250.00. Cash = $1347.50. Next deposit: October 19, 2026",
+      "order_id": "",
+      "reason": "",
+      "role": "",
+      "insider_name": ""
     }
   ],
   "trade_history": [
@@ -643,6 +657,6 @@
     }
   ],
   "last_fund_refresh": "2026-09-09T17:15:34.794222",
-  "fund_refresh_in": 5,
+  "fund_refresh_in": 2,
   "day60_verdict": "Verdict unavailable."
 }
