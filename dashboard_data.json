@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-10-21T18:15:20.164630",
-  "test_day": 128,
+  "generated_at": "2026-10-22T18:09:36.353678",
+  "test_day": 129,
   "test_total_days": 60,
   "test_ends": "August 14, 2026",
   "cash_balance": 1347.5,
   "total_deposited": 1750.0,
   "total_invested": 402.5,
-  "portfolio_value": 405.8,
-  "unrealized_pl": 3.32,
+  "portfolio_value": 393.4,
+  "unrealized_pl": -9.08,
   "next_deposit": "October 19, 2026",
-  "our_return_pct": -76.81,
-  "qqq_return_pct": -2.25,
-  "voo_return_pct": 2.4,
+  "our_return_pct": -77.52,
+  "qqq_return_pct": -5.28,
+  "voo_return_pct": 0.82,
   "positions": [
     {
       "symbol": "QQQ",
-      "market_value": 405.795974,
-      "unrealized_pl": 3.315975,
-      "unrealized_plpc": 0.8240000000000001,
+      "market_value": 393.401337,
+      "unrealized_pl": -9.078662,
+      "unrealized_plpc": -2.2560000000000002,
       "avg_entry": 720.880767,
       "amount_invested": 227.5,
       "conviction_pct": 0,
@@ -390,6 +390,34 @@
       "reason": "",
       "role": "",
       "insider_name": "Alvarez Jose Daniel"
+    },
+    {
+      "timestamp": "2026-10-22T18:09:18.791923",
+      "type": "WATCH",
+      "ticker": "INSM",
+      "source": "Hudson Paul ()",
+      "score": 3,
+      "conviction_pct": 0,
+      "allocation": 0,
+      "analysis": "Hudson Paul () filed a A transaction on INSM. Score 3/10 \u2014 below the 6/10 buy threshold, so no trade was placed. Held by: Druckenmiller. Reasons: Insider buy (A) (+3)",
+      "order_id": "",
+      "reason": "",
+      "role": "",
+      "insider_name": "Hudson Paul"
+    },
+    {
+      "timestamp": "2026-10-22T18:09:18.792927",
+      "type": "WATCH",
+      "ticker": "INSM",
+      "source": "Koppikar Utpal ()",
+      "score": 3,
+      "conviction_pct": 0,
+      "allocation": 0,
+      "analysis": "Koppikar Utpal () filed a A transaction on INSM. Score 3/10 \u2014 below the 6/10 buy threshold, so no trade was placed. Held by: Druckenmiller. Reasons: Insider buy (A) (+3)",
+      "order_id": "",
+      "reason": "",
+      "role": "",
+      "insider_name": "Koppikar Utpal"
     }
   ],
   "trade_history": [
@@ -685,6 +713,6 @@
     }
   ],
   "last_fund_refresh": "2026-10-07T19:30:49.169365",
-  "fund_refresh_in": 15,
+  "fund_refresh_in": 14,
   "day60_verdict": "Verdict unavailable."
 }
