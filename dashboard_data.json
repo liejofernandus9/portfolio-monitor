@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-10-22T18:09:36.353678",
-  "test_day": 129,
+  "generated_at": "2026-10-23T17:57:25.669979",
+  "test_day": 130,
   "test_total_days": 60,
   "test_ends": "August 14, 2026",
   "cash_balance": 1347.5,
   "total_deposited": 1750.0,
   "total_invested": 402.5,
-  "portfolio_value": 393.4,
-  "unrealized_pl": -9.08,
+  "portfolio_value": 394.13,
+  "unrealized_pl": -8.35,
   "next_deposit": "October 19, 2026",
-  "our_return_pct": -77.52,
-  "qqq_return_pct": -5.28,
-  "voo_return_pct": 0.82,
+  "our_return_pct": -77.48,
+  "qqq_return_pct": -5.07,
+  "voo_return_pct": 0.63,
   "positions": [
     {
       "symbol": "QQQ",
-      "market_value": 393.401337,
-      "unrealized_pl": -9.078662,
-      "unrealized_plpc": -2.2560000000000002,
+      "market_value": 394.127149,
+      "unrealized_pl": -8.35285,
+      "unrealized_plpc": -2.075,
       "avg_entry": 720.880767,
       "amount_invested": 227.5,
       "conviction_pct": 0,
@@ -713,6 +713,6 @@
     }
   ],
   "last_fund_refresh": "2026-10-07T19:30:49.169365",
-  "fund_refresh_in": 14,
+  "fund_refresh_in": 13,
   "day60_verdict": "Verdict unavailable."
 }
