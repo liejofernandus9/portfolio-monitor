@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-10-23T17:57:25.669979",
-  "test_day": 130,
+  "generated_at": "2026-10-26T19:32:33.959859",
+  "test_day": 133,
   "test_total_days": 60,
   "test_ends": "August 14, 2026",
-  "cash_balance": 1347.5,
-  "total_deposited": 1750.0,
+  "cash_balance": 1597.5,
+  "total_deposited": 2000.0,
   "total_invested": 402.5,
-  "portfolio_value": 394.13,
-  "unrealized_pl": -8.35,
-  "next_deposit": "October 19, 2026",
-  "our_return_pct": -77.48,
-  "qqq_return_pct": -5.07,
-  "voo_return_pct": 0.63,
+  "portfolio_value": 397.92,
+  "unrealized_pl": -4.56,
+  "next_deposit": "November 09, 2026",
+  "our_return_pct": -80.1,
+  "qqq_return_pct": -4.13,
+  "voo_return_pct": 1.24,
   "positions": [
     {
       "symbol": "QQQ",
-      "market_value": 394.127149,
-      "unrealized_pl": -8.35285,
-      "unrealized_plpc": -2.075,
+      "market_value": 397.923704,
+      "unrealized_pl": -4.556295,
+      "unrealized_plpc": -1.1320000000000001,
       "avg_entry": 720.880767,
       "amount_invested": 227.5,
       "conviction_pct": 0,
@@ -418,6 +418,20 @@
       "reason": "",
       "role": "",
       "insider_name": "Koppikar Utpal"
+    },
+    {
+      "timestamp": "2026-10-26T19:31:57.976947",
+      "type": "DEPOSIT",
+      "ticker": "",
+      "source": "System",
+      "score": 0,
+      "conviction_pct": 0,
+      "allocation": 250.0,
+      "analysis": "Biweekly deposit +$250.00. Cash = $1597.50. Next deposit: November 09, 2026",
+      "order_id": "",
+      "reason": "",
+      "role": "",
+      "insider_name": ""
     }
   ],
   "trade_history": [
@@ -713,6 +727,6 @@
     }
   ],
   "last_fund_refresh": "2026-10-07T19:30:49.169365",
-  "fund_refresh_in": 13,
+  "fund_refresh_in": 9,
   "day60_verdict": "Verdict unavailable."
 }
