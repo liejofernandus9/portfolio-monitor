@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-11-03T20:16:32.712704",
-  "test_day": 141,
+  "generated_at": "2026-11-04T20:32:08.006169",
+  "test_day": 142,
   "test_total_days": 60,
   "test_ends": "August 14, 2026",
   "cash_balance": 1597.5,
   "total_deposited": 2000.0,
   "total_invested": 402.5,
-  "portfolio_value": 382.31,
-  "unrealized_pl": -20.17,
+  "portfolio_value": 387.3,
+  "unrealized_pl": -15.18,
   "next_deposit": "November 09, 2026",
-  "our_return_pct": -80.88,
-  "qqq_return_pct": -7.94,
-  "voo_return_pct": -0.3,
+  "our_return_pct": -80.63,
+  "qqq_return_pct": -6.69,
+  "voo_return_pct": 1.63,
   "positions": [
     {
       "symbol": "QQQ",
-      "market_value": 382.307577,
-      "unrealized_pl": -20.172422,
-      "unrealized_plpc": -5.012,
+      "market_value": 387.301165,
+      "unrealized_pl": -15.178834,
+      "unrealized_plpc": -3.771,
       "avg_entry": 720.880767,
       "amount_invested": 227.5,
       "conviction_pct": 0,
@@ -432,6 +432,20 @@
       "reason": "",
       "role": "",
       "insider_name": ""
+    },
+    {
+      "timestamp": "2026-11-04T20:31:38.238682",
+      "type": "REFRESH",
+      "ticker": "",
+      "source": "System",
+      "score": 0,
+      "conviction_pct": 0,
+      "allocation": 0,
+      "analysis": "Watchlist rebuilt from 13F filings: 35 tickers, 0 held by 2+ managers. Next refresh in 28 days.",
+      "order_id": "",
+      "reason": "",
+      "role": "",
+      "insider_name": ""
     }
   ],
   "trade_history": [
@@ -726,7 +740,7 @@
       "cik": "0001656456"
     }
   ],
-  "last_fund_refresh": "2026-10-07T19:30:49.169365",
-  "fund_refresh_in": 1,
+  "last_fund_refresh": "2026-11-04T20:31:38.238660",
+  "fund_refresh_in": 28,
   "day60_verdict": "Verdict unavailable."
 }
