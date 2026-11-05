@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-11-04T20:32:08.006169",
-  "test_day": 142,
+  "generated_at": "2026-11-05T20:49:01.841866",
+  "test_day": 143,
   "test_total_days": 60,
   "test_ends": "August 14, 2026",
   "cash_balance": 1597.5,
   "total_deposited": 2000.0,
   "total_invested": 402.5,
-  "portfolio_value": 387.3,
-  "unrealized_pl": -15.18,
+  "portfolio_value": 363.35,
+  "unrealized_pl": -39.13,
   "next_deposit": "November 09, 2026",
-  "our_return_pct": -80.63,
-  "qqq_return_pct": -6.69,
-  "voo_return_pct": 1.63,
+  "our_return_pct": -81.83,
+  "qqq_return_pct": -12.4,
+  "voo_return_pct": -2.72,
   "positions": [
     {
       "symbol": "QQQ",
-      "market_value": 387.301165,
-      "unrealized_pl": -15.178834,
-      "unrealized_plpc": -3.771,
+      "market_value": 363.35238,
+      "unrealized_pl": -39.127619,
+      "unrealized_plpc": -9.722,
       "avg_entry": 720.880767,
       "amount_invested": 227.5,
       "conviction_pct": 0,
@@ -446,6 +446,20 @@
       "reason": "",
       "role": "",
       "insider_name": ""
+    },
+    {
+      "timestamp": "2026-11-05T20:48:50.947474",
+      "type": "WATCH",
+      "ticker": "MCO",
+      "source": "Demmings Keith ()",
+      "score": 3,
+      "conviction_pct": 0,
+      "allocation": 0,
+      "analysis": "Demmings Keith () filed a A transaction on MCO. Score 3/10 \u2014 below the 6/10 buy threshold, so no trade was placed. Held by: Buffett. Reasons: Insider buy (A) (+3)",
+      "order_id": "",
+      "reason": "",
+      "role": "",
+      "insider_name": "Demmings Keith"
     }
   ],
   "trade_history": [
@@ -741,6 +755,6 @@
     }
   ],
   "last_fund_refresh": "2026-11-04T20:31:38.238660",
-  "fund_refresh_in": 28,
+  "fund_refresh_in": 27,
   "day60_verdict": "Verdict unavailable."
 }
