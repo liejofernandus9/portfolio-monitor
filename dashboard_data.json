@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-11-06T20:04:23.675415",
-  "test_day": 144,
+  "generated_at": "2026-11-09T23:08:24.887930",
+  "test_day": 147,
   "test_total_days": 60,
   "test_ends": "August 14, 2026",
-  "cash_balance": 1597.5,
-  "total_deposited": 2000.0,
+  "cash_balance": 1847.5,
+  "total_deposited": 2250.0,
   "total_invested": 402.5,
-  "portfolio_value": 367.78,
-  "unrealized_pl": -34.7,
-  "next_deposit": "November 09, 2026",
-  "our_return_pct": -81.61,
-  "qqq_return_pct": -11.36,
+  "portfolio_value": 379.59,
+  "unrealized_pl": -22.89,
+  "next_deposit": "November 23, 2026",
+  "our_return_pct": -83.13,
+  "qqq_return_pct": -8.49,
   "voo_return_pct": -2.39,
   "positions": [
     {
       "symbol": "QQQ",
-      "market_value": 367.780169,
-      "unrealized_pl": -34.69983,
-      "unrealized_plpc": -8.622,
+      "market_value": 379.594157,
+      "unrealized_pl": -22.885842,
+      "unrealized_plpc": -5.686,
       "avg_entry": 720.880767,
       "amount_invested": 227.5,
       "conviction_pct": 0,
@@ -460,6 +460,20 @@
       "reason": "",
       "role": "",
       "insider_name": "Demmings Keith"
+    },
+    {
+      "timestamp": "2026-11-09T23:07:57.282613",
+      "type": "DEPOSIT",
+      "ticker": "",
+      "source": "System",
+      "score": 0,
+      "conviction_pct": 0,
+      "allocation": 250.0,
+      "analysis": "Biweekly deposit +$250.00. Cash = $1847.50. Next deposit: November 23, 2026",
+      "order_id": "",
+      "reason": "",
+      "role": "",
+      "insider_name": ""
     }
   ],
   "trade_history": [
@@ -755,6 +769,6 @@
     }
   ],
   "last_fund_refresh": "2026-11-04T20:31:38.238660",
-  "fund_refresh_in": 27,
+  "fund_refresh_in": 23,
   "day60_verdict": "Verdict unavailable."
 }
