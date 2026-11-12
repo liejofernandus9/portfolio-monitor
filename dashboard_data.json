@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-11-10T20:36:07.908388",
-  "test_day": 148,
+  "generated_at": "2026-11-12T21:05:28.171484",
+  "test_day": 150,
   "test_total_days": 60,
   "test_ends": "August 14, 2026",
   "cash_balance": 1847.5,
   "total_deposited": 2250.0,
   "total_invested": 402.5,
-  "portfolio_value": 376.31,
-  "unrealized_pl": -26.17,
+  "portfolio_value": 384.69,
+  "unrealized_pl": -17.79,
   "next_deposit": "November 23, 2026",
-  "our_return_pct": -83.28,
-  "qqq_return_pct": -9.37,
-  "voo_return_pct": -0.88,
+  "our_return_pct": -82.9,
+  "qqq_return_pct": -7.36,
+  "voo_return_pct": 3.71,
   "positions": [
     {
       "symbol": "QQQ",
-      "market_value": 376.305669,
-      "unrealized_pl": -26.17433,
-      "unrealized_plpc": -6.503,
+      "market_value": 384.686008,
+      "unrealized_pl": -17.793991,
+      "unrealized_plpc": -4.421,
       "avg_entry": 720.880767,
       "amount_invested": 227.5,
       "conviction_pct": 0,
@@ -474,6 +474,20 @@
       "reason": "",
       "role": "",
       "insider_name": ""
+    },
+    {
+      "timestamp": "2026-11-12T21:05:02.676187",
+      "type": "WATCH",
+      "ticker": "HLT",
+      "source": "Krass Caroline ()",
+      "score": 3,
+      "conviction_pct": 0,
+      "allocation": 0,
+      "analysis": "Krass Caroline () filed a A transaction on HLT. Score 3/10 \u2014 below the 6/10 buy threshold, so no trade was placed. Held by: Ackman. Reasons: Insider buy (A) (+3)",
+      "order_id": "",
+      "reason": "",
+      "role": "",
+      "insider_name": "Krass Caroline"
     }
   ],
   "trade_history": [
@@ -769,6 +783,6 @@
     }
   ],
   "last_fund_refresh": "2026-11-04T20:31:38.238660",
-  "fund_refresh_in": 22,
+  "fund_refresh_in": 20,
   "day60_verdict": "Verdict unavailable."
 }
