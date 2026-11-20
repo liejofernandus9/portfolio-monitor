@@ -1,23 +1,23 @@
 {
-  "generated_at": "2026-11-19T21:47:32.542682",
-  "test_day": 157,
+  "generated_at": "2026-11-20T21:31:16.806273",
+  "test_day": 158,
   "test_total_days": 60,
   "test_ends": "August 14, 2026",
   "cash_balance": 1847.5,
   "total_deposited": 2250.0,
   "total_invested": 402.5,
-  "portfolio_value": 358.32,
-  "unrealized_pl": -44.16,
+  "portfolio_value": 342.47,
+  "unrealized_pl": -60.01,
   "next_deposit": "November 23, 2026",
-  "our_return_pct": -84.07,
-  "qqq_return_pct": -11.11,
-  "voo_return_pct": -2.41,
+  "our_return_pct": -84.78,
+  "qqq_return_pct": -15.64,
+  "voo_return_pct": -5.55,
   "positions": [
     {
       "symbol": "QQQ",
-      "market_value": 358.316695,
-      "unrealized_pl": -44.163304,
-      "unrealized_plpc": -10.972999999999999,
+      "market_value": 342.471658,
+      "unrealized_pl": -60.008341,
+      "unrealized_plpc": -14.91,
       "avg_entry": 720.880767,
       "amount_invested": 227.5,
       "conviction_pct": 0,
@@ -544,6 +544,20 @@
       "reason": "",
       "role": "",
       "insider_name": ""
+    },
+    {
+      "timestamp": "2026-11-20T21:30:57.307610",
+      "type": "WATCH",
+      "ticker": "TSM",
+      "source": "BURNS URSULA M ()",
+      "score": 3,
+      "conviction_pct": 0,
+      "allocation": 0,
+      "analysis": "BURNS URSULA M () filed a P transaction on TSM. Score 3/10 \u2014 below the 6/10 buy threshold, so no trade was placed. Held by: Druckenmiller. Reasons: Insider buy (P) (+3)",
+      "order_id": "",
+      "reason": "",
+      "role": "",
+      "insider_name": "BURNS URSULA M"
     }
   ],
   "trade_history": [
@@ -839,6 +853,6 @@
     }
   ],
   "last_fund_refresh": "2026-11-04T20:31:38.238660",
-  "fund_refresh_in": 13,
+  "fund_refresh_in": 12,
   "day60_verdict": "Verdict unavailable."
 }
